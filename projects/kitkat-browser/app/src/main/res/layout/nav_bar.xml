@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="4dp">
+
+    <ImageButton
+        android:id="@+id/btn_back"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?android:attr/selectableItemBackground"
+        android:contentDescription="Back"
+        android:src="@android:drawable/ic_media_previous" />
+
+    <ImageButton
+        android:id="@+id/btn_forward"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?android:attr/selectableItemBackground"
+        android:contentDescription="Forward"
+        android:src="@android:drawable/ic_media_next" />
+
+    <!-- Static rotate icon instead of animated sync popup -->
+    <ImageButton
+        android:id="@+id/btn_refresh"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?android:attr/selectableItemBackground"
+        android:contentDescription="Refresh"
+        android:src="@android:drawable/ic_menu_rotate" />
+
+
+    <!-- Bookmark Star Button -->
+    <ImageButton
+        android:id="@+id/btn_bookmark"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?android:attr/selectableItemBackground"
+        android:contentDescription="Bookmark"
+        android:src="@android:drawable/btn_star_big_off" />
+
+    <EditText
+        android:id="@+id/url_input"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:hint="Enter URL..."
+        android:imeOptions="actionGo"
+        android:inputType="textUri"
+        android:singleLine="true" />
+
+    <ImageButton
+        android:id="@+id/clear_button"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?android:attr/selectableItemBackground"
+        android:contentDescription="Clear"
+        android:src="@android:drawable/ic_menu_close_clear_cancel" />
+
+    <!-- Changed Go from Button to ImageButton using system send icon -->
+    <ImageButton
+        android:id="@+id/go_button"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?android:attr/selectableItemBackground"
+        android:contentDescription="Go"
+        android:src="@android:drawable/ic_menu_send" />
+
+</LinearLayout>

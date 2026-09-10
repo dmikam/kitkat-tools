@@ -107,6 +107,9 @@ public class MainActivity extends AppCompatActivity {
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
                 urlInput.setText(url);
+
+                // Immediately update star state when navigating to a new URL
+                updateBookmarkIcon(url);
             }
 
             @Override
@@ -122,6 +125,8 @@ public class MainActivity extends AppCompatActivity {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 urlInput.setText(url);
+                // Re-verify in case of redirects or dynamic title changes
+                updateBookmarkIcon(url);
             }
         });
 
@@ -258,6 +263,16 @@ public class MainActivity extends AppCompatActivity {
                 })
                 .setNegativeButton("Close", null)
                 .show();
+    }
+
+    private void updateBookmarkIcon(String url) {
+        ImageButton btnBookmark = findViewById(R.id.btn_bookmark);
+        if (btnBookmark != null && url != null) {
+            boolean bookmarked = BookmarkManager.isBookmarked(MainActivity.this, url);
+            btnBookmark.setImageResource(
+                bookmarked ? android.R.drawable.btn_star_big_on : android.R.drawable.btn_star_big_off
+            );
+        }
     }
 
     @Override
