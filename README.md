@@ -74,23 +74,25 @@ The build environment is fully dockerized to ensure deterministic builds across 
    ```bash
    docker compose build android-builder
 
-```
+   ```
 
 2. **Compile the App:**
-```bash
-./build.sh kitkat-browser
+   ```bash
+   ./build.sh kitkat-browser
 
-```
+   ```
 
 
-3. The generated APK will be output to:
-`projects/kitkat-browser/app/build/output/`
+3. **Generated APK location**
+   ```bash
+   ls output/
+   ```
 
 4. **Install the App to the connected device using adb:**
-```bash
-./install.sh kitkat-browser
+    ```bash
+    ./install.sh kitkat-browser
 
-```
+    ```
 
 
 ---
