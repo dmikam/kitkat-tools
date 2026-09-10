@@ -19,6 +19,7 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import androidx.appcompat.app.AppCompatActivity;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -42,6 +43,44 @@ public class MainActivity extends AppCompatActivity {
         ImageButton btnBack = findViewById(R.id.btn_back);
         ImageButton btnForward = findViewById(R.id.btn_forward);
         ImageButton btnRefresh = findViewById(R.id.btn_refresh);
+
+
+        // BOOKMARKS
+
+        ImageButton btnBookmark = findViewById(R.id.btn_bookmark);
+
+        // Click star to toggle bookmark for current page
+        btnBookmark.setOnClickListener(v -> {
+            String url = webView.getUrl();
+            String title = webView.getTitle();
+            if (url != null) {
+                if (BookmarkManager.isBookmarked(MainActivity.this, url)) {
+                    BookmarkManager.removeBookmark(MainActivity.this, url);
+                    btnBookmark.setImageResource(android.R.drawable.btn_star_big_off);
+                } else {
+                    BookmarkManager.addBookmark(MainActivity.this, title, url);
+                    btnBookmark.setImageResource(android.R.drawable.btn_star_big_on);
+                }
+            }
+        });
+
+        // Long press star to view saved bookmarks dialog
+        btnBookmark.setOnLongClickListener(v -> {
+            showBookmarksDialog();
+            return true;
+        });
+
+        // Update star icon on page finish:
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                urlInput.setText(url);
+                boolean bookmarked = BookmarkManager.isBookmarked(MainActivity.this, url);
+                btnBookmark.setImageResource(bookmarked ? android.R.drawable.btn_star_big_on : android.R.drawable.btn_star_big_off);
+            }
+        });
+        // END BOOKMARKS
 
         registerForContextMenu(webView);
 
@@ -193,6 +232,32 @@ public class MainActivity extends AppCompatActivity {
             super.overridePendingTransition(0, 0);
             super.onBackPressed();
         }
+    }
+
+    private void showBookmarksDialog() {
+        final List<BookmarkManager.Bookmark> bookmarks = BookmarkManager.getBookmarks(this);
+        if (bookmarks.isEmpty()) {
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("Bookmarks")
+                    .setMessage("No saved bookmarks.")
+                    .setPositiveButton("OK", null)
+                    .show();
+            return;
+        }
+
+        String[] titles = new String[bookmarks.size()];
+        for (int i = 0; i < bookmarks.size(); i++) {
+            titles[i] = bookmarks.get(i).title + "\n" + bookmarks.get(i).url;
+        }
+
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Bookmarks")
+                .setItems(titles, (dialog, which) -> {
+                    String targetUrl = bookmarks.get(which).url;
+                    webView.loadUrl(targetUrl);
+                })
+                .setNegativeButton("Close", null)
+                .show();
     }
 
     @Override
