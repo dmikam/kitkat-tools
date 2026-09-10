@@ -1,0 +1,13 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 19
+
+    defaultConfig {
+        applicationId "com.dmikam.kitkatdownloader"
+        minSdkVersion 19
+        targetSdkVersion 19
+        versionCode 1
+        versionName "1.0"
+    }
+}

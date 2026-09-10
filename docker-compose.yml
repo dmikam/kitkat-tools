@@ -1,0 +1,15 @@
+services:
+  android-builder:
+    build: .
+    image: android-kitkat-builder:latest
+    container_name: android_builder
+    user: "${CURRENT_UID:-1000}:${CURRENT_GID:-1000}"
+    environment:
+      - PROJECT_DIR=${PROJECT_DIR:-projects/kitkat-downloader}
+    volumes:
+      - ./:/app
+      - gradle-cache:/root/.gradle
+    command: bash -c "cd /app/\$PROJECT_DIR && gradle assembleDebug"
+
+volumes:
+  gradle-cache:

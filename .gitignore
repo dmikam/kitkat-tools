@@ -1,0 +1,38 @@
+# Built application files
+*.apk
+*.aar
+*.ap_
+*.aab
+
+# Files for the ART/DALVIK virtual machine
+*.dex
+
+# Java class files
+*.class
+
+# Generated files
+bin/
+gen/
+out/
+build/
+.gradle/
+
+# Android Studio / IntelliJ project files
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Local configuration file (sdk path, etc.)
+local.properties
+
+# Gradle caches & wrappers (optional to exclude cache, keep wrapper if used)
+.gradle/
+
+# Log Files
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
