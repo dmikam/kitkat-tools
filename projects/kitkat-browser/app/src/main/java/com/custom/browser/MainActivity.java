@@ -108,6 +108,8 @@ public class MainActivity extends AppCompatActivity {
                 super.onPageStarted(view, url, favicon);
                 urlInput.setText(url);
 
+                hideKeyboard();
+
                 // Immediately update star state when navigating to a new URL
                 updateBookmarkIcon(url);
             }
@@ -127,6 +129,9 @@ public class MainActivity extends AppCompatActivity {
                 urlInput.setText(url);
                 // Re-verify in case of redirects or dynamic title changes
                 updateBookmarkIcon(url);
+
+                // Inject E-Ink CSS overrides
+                applyEInkOptimizations(view);
             }
         });
 
@@ -275,6 +280,75 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
+    private void applyEInkOptimizations(WebView view) {
+        String eInkCss =
+            "/* Disable all animations and transitions */ " +
+            "* { " +
+            "  -webkit-transition: none !important; " +
+            "  transition: none !important; " +
+            "  -webkit-animation: none !important; " +
+            "  animation: none !important; " +
+            "  scroll-behavior: auto !important; " +
+            "  box-shadow: none !important; " +
+            "  text-shadow: none !important; " +
+            "} " +
+            "/* E-Ink Link Styling */ " +
+            "a { " +
+            "  font-weight: bold !important; " +
+            "  text-decoration: underline !important; " +
+            "  color: #000000 !important; " +
+            "} " +
+            "/* E-Ink Button Styling */ " +
+            "button, input[type='button'], input[type='submit'], input[type='reset'], .btn { " +
+            "  background-color: #e0e0e0 !important; " +
+            "  background-image: none !important; " +
+            "  color: #000000 !important; " +
+            "  border: 2px solid #000000 !important; " +
+            "  border-radius: 2px !important; " +
+            "  font-weight: bold !important; " +
+            "  padding: 4px 8px !important; " +
+            "}";
+
+        // JS snippet to detect and fix low-contrast text vs background
+        String contrastFixJs =
+            "var elements = document.querySelectorAll('p, span, a, li, h1, h2, h3, h4, h5, h6, td'); " +
+            "for (var i = 0; i < elements.length; i++) { " +
+            "  var el = elements[i]; " +
+            "  var style = window.getComputedStyle(el); " +
+            "  var color = style.color; " +
+            "  var bg = style.backgroundColor; " +
+            "  if (color && bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)') { " +
+            "    var parseRgb = function(c) { " +
+            "      var m = c.match(/\\d+/g); " +
+            "      return m ? [parseInt(m[0]), parseInt(m[1]), parseInt(m[2])] : null; " +
+            "    }; " +
+            "    var rgbC = parseRgb(color); " +
+            "    var rgbB = parseRgb(bg); " +
+            "    if (rgbC && rgbB) { " +
+            "      var lumC = (rgbC[0]*299 + rgbC[1]*587 + rgbC[2]*114)/1000; " +
+            "      var lumB = (rgbB[0]*299 + rgbB[1]*587 + rgbB[2]*114)/1000; " +
+            "      if (Math.abs(lumC - lumB) < 40) { " +
+            "        if (lumB < 128) { " +
+            "          el.style.setProperty('color', '#ffffff', 'important'); " +
+            "        } else { " +
+            "          el.style.setProperty('color', '#000000', 'important'); " +
+            "        } " +
+            "      } " +
+            "    } " +
+            "  } " +
+            "} ";
+
+        String js = "javascript:(function() { " +
+                "var style = document.createElement('style'); " +
+                "style.type = 'text/css'; " +
+                "style.innerHTML = '" + eInkCss + "'; " +
+                "document.getElementsByTagName('head')[0].appendChild(style); " +
+                contrastFixJs +
+                "})()";
+
+        view.loadUrl(js);
+    }
     @Override
     public void finish() {
         super.finish();
