@@ -7,26 +7,33 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="center_vertical"
         android:orientation="horizontal"
         android:padding="4dp">
 
-        <Button
+        <ImageButton
             android:id="@+id/btn_back"
             android:layout_width="40dp"
-            android:layout_height="wrap_content"
-            android:text="&lt;" />
+            android:layout_height="40dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:contentDescription="Back"
+            android:src="@android:drawable/ic_media_previous" />
 
-        <Button
+        <ImageButton
             android:id="@+id/btn_forward"
             android:layout_width="40dp"
-            android:layout_height="wrap_content"
-            android:text="&gt;" />
+            android:layout_height="40dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:contentDescription="Forward"
+            android:src="@android:drawable/ic_media_next" />
 
-        <Button
+        <ImageButton
             android:id="@+id/btn_refresh"
             android:layout_width="40dp"
-            android:layout_height="wrap_content"
-            android:text="R" />
+            android:layout_height="40dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:contentDescription="Refresh"
+            android:src="@android:drawable/ic_popup_sync" />
 
         <EditText
             android:id="@+id/url_input"
@@ -38,11 +45,13 @@
             android:inputType="textUri"
             android:singleLine="true" />
 
-        <Button
+        <ImageButton
             android:id="@+id/clear_button"
             android:layout_width="40dp"
-            android:layout_height="wrap_content"
-            android:text="X" />
+            android:layout_height="40dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:contentDescription="Clear"
+            android:src="@android:drawable/ic_menu_close_clear_cancel" />
 
         <Button
             android:id="@+id/go_button"

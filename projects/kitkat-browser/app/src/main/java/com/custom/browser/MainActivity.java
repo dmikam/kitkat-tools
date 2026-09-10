@@ -15,6 +15,7 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.ImageButton;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
@@ -37,11 +38,11 @@ public class MainActivity extends AppCompatActivity {
         urlInput = findViewById(R.id.url_input);
         progressBar = findViewById(R.id.page_progress);
 
-        Button goButton = findViewById(R.id.go_button);
-        Button clearButton = findViewById(R.id.clear_button);
-        Button btnBack = findViewById(R.id.btn_back);
-        Button btnForward = findViewById(R.id.btn_forward);
-        Button btnRefresh = findViewById(R.id.btn_refresh);
+	ImageButton btnBack = findViewById(R.id.btn_back);
+	ImageButton btnForward = findViewById(R.id.btn_forward);
+	ImageButton btnRefresh = findViewById(R.id.btn_refresh);
+	ImageButton clearButton = findViewById(R.id.clear_button);
+	Button goButton = findViewById(R.id.go_button);
 
         registerForContextMenu(webView);
 
