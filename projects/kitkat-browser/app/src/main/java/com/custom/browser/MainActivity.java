@@ -1,4 +1,4 @@
-package com.custom.browser;
+package com.dmikam.kitkatbrowser;
 
 import android.content.Context;
 import android.content.Intent;

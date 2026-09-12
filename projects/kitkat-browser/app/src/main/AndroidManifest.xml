@@ -1,21 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.custom.browser">
+    package="com.dmikam.kitkatbrowser"
+    android:icon="@android:drawable/ic_menu_compass">
 
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
         android:label="KitKat Browser"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat.Light.NoActionBar">
-        
-        <activity android:name=".MainActivity">
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+        android:icon="@android:drawable/ic_menu_compass"
+    >
+
+        <!-- Your actual Main Activity -->
+        <activity
+            android:name=".MainActivity"
+            android:label="KitKat Browser"
+            android:launchMode="singleTask"
+            android:icon="@android:drawable/ic_menu_compass"
+        >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-    </application>
 
+        <!-- Alias to hijack legacy com.android.browser requests -->
+        <activity-alias
+            android:name="com.android.browser.BrowserActivity"
+            android:targetActivity=".MainActivity"
+            android:exported="true"
+            android:label="KitKat Browser"
+            android:icon="@android:drawable/ic_menu_compass"
+        >
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+            </intent-filter>
+        </activity-alias>
+
+    </application>
 </manifest>
