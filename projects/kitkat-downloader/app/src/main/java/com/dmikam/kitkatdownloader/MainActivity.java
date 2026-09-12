@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.text.TextUtils;
 import android.util.Log;
+import android.webkit.URLUtil;
 import android.widget.Toast;
 
 import java.io.File;
@@ -32,12 +33,13 @@ public class MainActivity extends Activity {
             String action = intent.getAction();
 
             if (Intent.ACTION_VIEW.equals(action) && intent.getData() != null) {
-                startCustomDownload(intent.getData().toString());
+                startCustomDownload(intent);
             } else if (Intent.ACTION_SEND.equals(action)) {
                 String sharedText = intent.getStringExtra(Intent.EXTRA_TEXT);
                 String extractedUrl = extractUrl(sharedText);
                 if (extractedUrl != null) {
-                    startCustomDownload(extractedUrl);
+                    Intent sendIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(extractedUrl));
+                    startCustomDownload(sendIntent);
                 } else {
                     Toast.makeText(this, "No se encontro URL valida", Toast.LENGTH_SHORT).show();
                     finish();
@@ -60,17 +62,27 @@ public class MainActivity extends Activity {
         return null;
     }
 
-    private void startCustomDownload(String urlString) {
+    private void startCustomDownload(Intent intent) {
         Toast.makeText(this, "Iniciando descarga directa...", Toast.LENGTH_SHORT).show();
-        new DownloadTask().execute(urlString);
+        new DownloadTask(intent).execute();
     }
 
-    private class DownloadTask extends AsyncTask<String, Void, Boolean> {
+    private class DownloadTask extends AsyncTask<Void, Void, Boolean> {
+        private final Intent downloadIntent;
         private String fileName = "";
 
+        public DownloadTask(Intent intent) {
+            this.downloadIntent = intent;
+        }
+
         @Override
-        protected Boolean doInBackground(String... params) {
-            String urlString = params[0];
+        protected Boolean doInBackground(Void... params) {
+            String urlString = downloadIntent.getDataString();
+            if (urlString == null) return false;
+
+            String passedUserAgent = downloadIntent.getStringExtra("EXTRA_USER_AGENT");
+            String passedContentDisposition = downloadIntent.getStringExtra("EXTRA_CONTENT_DISPOSITION");
+
             InputStream input = null;
             FileOutputStream output = null;
             HttpURLConnection connection = null;
@@ -79,13 +91,18 @@ public class MainActivity extends Activity {
                 URL url = new URL(urlString);
                 connection = (HttpURLConnection) url.openConnection();
 
-                // Habilitar TLS 1.2 explícitamente en conexiones HTTPS para Android KitKat
+                // Enable TLS 1.2 explicitly for Android KitKat HTTPS connections
                 if (connection instanceof HttpsURLConnection) {
                     ((HttpsURLConnection) connection).setSSLSocketFactory(new TLSSocketFactory());
                 }
 
-                // User-Agent para evitar bloqueos de servidores
-                connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 4.4.2)");
+                // Apply passed User-Agent if available, otherwise fallback
+                if (!TextUtils.isEmpty(passedUserAgent)) {
+                    connection.setRequestProperty("User-Agent", passedUserAgent);
+                } else {
+                    connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 4.4.2)");
+                }
+
                 connection.setConnectTimeout(15000);
                 connection.setReadTimeout(15000);
                 connection.setInstanceFollowRedirects(true);
@@ -97,11 +114,18 @@ public class MainActivity extends Activity {
                     return false;
                 }
 
-                Uri uri = Uri.parse(urlString);
-                fileName = uri.getLastPathSegment();
-                if (TextUtils.isEmpty(fileName) || !fileName.contains(".")) {
-                    fileName = "download_" + System.currentTimeMillis();
-                }
+                // 1. Check live HTTP response headers from server
+                String serverDisposition = connection.getHeaderField("Content-Disposition");
+                String mimeType = connection.getContentType();
+
+                // 2. Fallback to passed Content-Disposition extra if server omitted response header
+                String finalDisposition = !TextUtils.isEmpty(serverDisposition)
+                        ? serverDisposition
+                        : passedContentDisposition;
+
+                // 3. Resolve actual filename from connection URL (post-redirect) + headers
+                String finalUrl = connection.getURL().toString();
+                fileName = URLUtil.guessFileName(finalUrl, finalDisposition, mimeType);
 
                 File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
                 if (!downloadsDir.exists()) {

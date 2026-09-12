@@ -281,9 +281,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+
     private void applyEInkOptimizations(WebView view) {
         String eInkCss =
-            "/* Disable all animations and transitions */ " +
+            "/* Disable animations and transitions */ " +
             "* { " +
             "  -webkit-transition: none !important; " +
             "  transition: none !important; " +
@@ -293,13 +294,13 @@ public class MainActivity extends AppCompatActivity {
             "  box-shadow: none !important; " +
             "  text-shadow: none !important; " +
             "} " +
-            "/* E-Ink Link Styling */ " +
+            "/* Bold & Underlined Links */ " +
             "a { " +
             "  font-weight: bold !important; " +
             "  text-decoration: underline !important; " +
             "  color: #000000 !important; " +
             "} " +
-            "/* E-Ink Button Styling */ " +
+            "/* E-Ink Buttons with visible borders */ " +
             "button, input[type='button'], input[type='submit'], input[type='reset'], .btn { " +
             "  background-color: #e0e0e0 !important; " +
             "  background-image: none !important; " +
@@ -310,45 +311,77 @@ public class MainActivity extends AppCompatActivity {
             "  padding: 4px 8px !important; " +
             "}";
 
-        // JS snippet to detect and fix low-contrast text vs background
-        String contrastFixJs =
-            "var elements = document.querySelectorAll('p, span, a, li, h1, h2, h3, h4, h5, h6, td'); " +
-            "for (var i = 0; i < elements.length; i++) { " +
-            "  var el = elements[i]; " +
-            "  var style = window.getComputedStyle(el); " +
-            "  var color = style.color; " +
-            "  var bg = style.backgroundColor; " +
-            "  if (color && bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)') { " +
-            "    var parseRgb = function(c) { " +
-            "      var m = c.match(/\\d+/g); " +
-            "      return m ? [parseInt(m[0]), parseInt(m[1]), parseInt(m[2])] : null; " +
-            "    }; " +
-            "    var rgbC = parseRgb(color); " +
-            "    var rgbB = parseRgb(bg); " +
-            "    if (rgbC && rgbB) { " +
-            "      var lumC = (rgbC[0]*299 + rgbC[1]*587 + rgbC[2]*114)/1000; " +
-            "      var lumB = (rgbB[0]*299 + rgbB[1]*587 + rgbB[2]*114)/1000; " +
-            "      if (Math.abs(lumC - lumB) < 40) { " +
-            "        if (lumB < 128) { " +
-            "          el.style.setProperty('color', '#ffffff', 'important'); " +
-            "        } else { " +
-            "          el.style.setProperty('color', '#000000', 'important'); " +
-            "        } " +
-            "      } " +
-            "    } " +
-            "  } " +
-            "} ";
-
         String js = "javascript:(function() { " +
-                "var style = document.createElement('style'); " +
-                "style.type = 'text/css'; " +
-                "style.innerHTML = '" + eInkCss + "'; " +
-                "document.getElementsByTagName('head')[0].appendChild(style); " +
-                contrastFixJs +
+                "var injectTimeout = null; " +
+                "var lastExecutionTime = 0; " +
+                "var DEBOUNCE_INTERVAL = 2000; " + // Limit execution to once every 2000ms
+                "" +
+                "function scheduleInjectAndFix() { " +
+                "  var now = Date.now(); " +
+                "  var timeSinceLast = now - lastExecutionTime; " +
+                "  if (timeSinceLast >= DEBOUNCE_INTERVAL) { " +
+                "    lastExecutionTime = now; " +
+                "    injectAndFix(); " +
+                "  } else { " +
+                "    if (injectTimeout) clearTimeout(injectTimeout); " +
+                "    injectTimeout = setTimeout(function() { " +
+                "      lastExecutionTime = Date.now(); " +
+                "      injectAndFix(); " +
+                "    }, DEBOUNCE_INTERVAL - timeSinceLast); " +
+                "  } " +
+                "} " +
+                "" +
+                "function injectAndFix() { " +
+                "  var styleId = 'eink-optimization-styles'; " +
+                "  var existingStyle = document.getElementById(styleId); " +
+                "  if (!existingStyle) { " +
+                "    existingStyle = document.createElement('style'); " +
+                "    existingStyle.id = styleId; " +
+                "    existingStyle.type = 'text/css'; " +
+                "    existingStyle.innerHTML = '" + eInkCss + "'; " +
+                "    document.head.appendChild(existingStyle); " +
+                "  } else { " +
+                "    document.head.appendChild(existingStyle); " + // Move to bottom of <head>
+                "  } " +
+                "  fixContrast(); " +
+                "} " +
+                "" +
+                "function fixContrast() { " +
+                "  var elements = document.querySelectorAll('p, span, a, li, h1, h2, h3, h4, h5, h6, td'); " +
+                "  for (var i = 0; i < elements.length; i++) { " +
+                "    var el = elements[i]; " +
+                "    var style = window.getComputedStyle(el); " +
+                "    var color = style.color; " +
+                "    var bg = style.backgroundColor; " +
+                "    if (color && bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)') { " +
+                "      var mC = color.match(/\\d+/g); " +
+                "      var mB = bg.match(/\\d+/g); " +
+                "      if (mC && mB) { " +
+                "        var lumC = (parseInt(mC[0])*299 + parseInt(mC[1])*587 + parseInt(mC[2])*114)/1000; " +
+                "        var lumB = (parseInt(mB[0])*299 + parseInt(mB[1])*587 + parseInt(mB[2])*114)/1000; " +
+                "        if (Math.abs(lumC - lumB) < 40) { " +
+                "          el.style.setProperty('color', lumB < 128 ? '#ffffff' : '#000000', 'important'); " +
+                "        } " +
+                "      } " +
+                "    } " +
+                "  } " +
+                "} " +
+                "" +
+                "/* Run initial pass immediately */ " +
+                "scheduleInjectAndFix(); " +
+                "" +
+                "/* Attach throttled observer */ " +
+                "if (!window.einkObserver) { " +
+                "  window.einkObserver = new MutationObserver(function(mutations) { " +
+                "    scheduleInjectAndFix(); " +
+                "  }); " +
+                "  window.einkObserver.observe(document.head, { childList: true, subtree: true }); " +
+                "} " +
                 "})()";
 
         view.loadUrl(js);
     }
+
     @Override
     public void finish() {
         super.finish();
