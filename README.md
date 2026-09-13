@@ -1,6 +1,6 @@
 # KitKat Tools: Custom Browser & Downloader
 
-A lightweight, reproducible Android toolchain built specifically for **Android 4.4 (KitKat / API 19)** devices. This project provides a minimal WebKit browser paired with a specialized external downloader to bypass legacy Android OS download limitations.
+A lightweight, reproducible Android toolchain built specifically for **Android 4.4 (KitKat / API 19)** devices (basicly for my old Android 4.4.4 EReader Tagus Gaia based on Onyx Boox Poke). This project provides a minimal WebKit browser paired with a specialized external downloader to bypass legacy Android OS download limitations (unsupported SSLv1.2).
 
 ---
 
