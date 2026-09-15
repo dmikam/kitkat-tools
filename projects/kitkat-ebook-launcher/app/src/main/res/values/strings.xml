@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">E-Book Launcher</string>
+    <string name="tab_books">Recent Books</string>
+    <string name="tab_apps">Applications</string>
+    <string name="no_books_found">No recent books found in library.</string>
+    <string name="no_apps_found">No applications found.</string>
+    <string name="unknown_author">Unknown Author</string>
+    <string name="unknown_title">Untitled</string>
+    <string name="progress_label">Progress: %s</string>
+    <string name="refresh">Refresh</string>
+</resources>
+
