@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@color/white"
+    android:padding="16dp">
+
+    <!-- Cover image, lazy-loaded, hidden if unavailable -->
+    <ImageView
+        android:id="@+id/iv_cover"
+        android:layout_width="120dp"
+        android:layout_height="160dp"
+        android:layout_gravity="center_horizontal"
+        android:scaleType="fitCenter"
+        android:visibility="gone" />
+
+    <!-- Title -->
+    <TextView
+        android:id="@+id/tv_detail_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:textColor="@color/black"
+        android:textSize="17sp"
+        android:textStyle="bold" />
+
+    <!-- Author -->
+    <TextView
+        android:id="@+id/tv_detail_author"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="@color/gray_dark"
+        android:textSize="14sp" />
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="12dp"
+        android:background="@color/gray_border" />
+
+    <!-- Metadata rows -->
+    <TextView
+        android:id="@+id/tv_detail_format"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@color/black"
+        android:textSize="13sp" />
+
+    <TextView
+        android:id="@+id/tv_detail_progress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="@color/black"
+        android:textSize="13sp" />
+
+    <TextView
+        android:id="@+id/tv_detail_last_access"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="@color/black"
+        android:textSize="13sp" />
+
+    <TextView
+        android:id="@+id/tv_detail_reader"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="@color/black"
+        android:textSize="13sp" />
+
+    <TextView
+        android:id="@+id/tv_detail_series"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="@color/black"
+        android:textSize="13sp" />
+
+    <TextView
+        android:id="@+id/tv_detail_tags"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="@color/black"
+        android:textSize="13sp" />
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="8dp"
+        android:background="@color/gray_border" />
+
+    <!-- Actions -->
+    <Button
+        android:id="@+id/btn_open_with"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:text="Open with..."
+        android:textColor="@color/black"
+        android:textSize="14sp"
+        android:background="@color/gray_light"
+        android:layout_marginBottom="6dp" />
+
+    <Button
+        android:id="@+id/btn_toggle_favorite"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:text="Toggle Favorite"
+        android:textColor="@color/black"
+        android:textSize="14sp"
+        android:background="@color/gray_light"
+        android:layout_marginBottom="6dp" />
+
+    <Button
+        android:id="@+id/btn_delete"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:text="Delete book..."
+        android:textColor="@color/black"
+        android:textSize="14sp"
+        android:background="@color/gray_light" />
+
+</LinearLayout>
+
