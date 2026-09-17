@@ -6,6 +6,7 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.ContextMenu;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
@@ -38,6 +39,12 @@ public class MainActivity extends AppCompatActivity {
         urlInput = findViewById(R.id.url_input);
         progressBar = findViewById(R.id.page_progress);
 
+        // Hidden toolbar used so system app-menu opens overflow at top-right
+        androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.toolbar);
+        if (toolbar != null) {
+            setSupportActionBar(toolbar);
+        }
+
         ImageButton goButton = findViewById(R.id.go_button);
         ImageButton clearButton = findViewById(R.id.clear_button);
         ImageButton btnBack = findViewById(R.id.btn_back);
@@ -49,26 +56,32 @@ public class MainActivity extends AppCompatActivity {
 
         ImageButton btnBookmark = findViewById(R.id.btn_bookmark);
 
-        // Click star to toggle bookmark for current page
+        // Click star to confirm add/remove
         btnBookmark.setOnClickListener(v -> {
             String url = webView.getUrl();
             String title = webView.getTitle();
-            if (url != null) {
-                if (BookmarkManager.isBookmarked(MainActivity.this, url)) {
-                    BookmarkManager.removeBookmark(MainActivity.this, url);
-                    btnBookmark.setImageResource(android.R.drawable.btn_star_big_off);
-                } else {
-                    BookmarkManager.addBookmark(MainActivity.this, title, url);
-                    btnBookmark.setImageResource(android.R.drawable.btn_star_big_on);
-                }
-            }
+            if (url == null) return;
+            final boolean isBookmarked = BookmarkManager.isBookmarked(MainActivity.this, url);
+            String message = isBookmarked ? "Remove this bookmark?" : "Add this bookmark?";
+            new androidx.appcompat.app.AlertDialog.Builder(MainActivity.this)
+                    .setTitle("Confirm")
+                    .setMessage(message)
+                    .setPositiveButton(isBookmarked ? "Remove" : "Add", (dialog, which) -> {
+                        if (isBookmarked) {
+                            BookmarkManager.removeBookmark(MainActivity.this, url);
+                            btnBookmark.setImageResource(android.R.drawable.btn_star_big_off);
+                            android.widget.Toast.makeText(MainActivity.this, "Bookmark removed", android.widget.Toast.LENGTH_SHORT).show();
+                        } else {
+                            BookmarkManager.addBookmark(MainActivity.this, title, url);
+                            btnBookmark.setImageResource(android.R.drawable.btn_star_big_on);
+                            android.widget.Toast.makeText(MainActivity.this, "Bookmark added", android.widget.Toast.LENGTH_SHORT).show();
+                        }
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
         });
 
-        // Long press star to view saved bookmarks dialog
-        btnBookmark.setOnLongClickListener(v -> {
-            showBookmarksDialog();
-            return true;
-        });
+        // Long-press removed — bookmarks are available from the app menu.
 
         // Update star icon on page finish:
         webView.setWebViewClient(new WebViewClient() {
@@ -189,6 +202,22 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         return super.onContextItemSelected(item);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        if (id == R.id.menu_bookmarks_open) {
+            showBookmarksDialog();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     private void loadFromInput() {
