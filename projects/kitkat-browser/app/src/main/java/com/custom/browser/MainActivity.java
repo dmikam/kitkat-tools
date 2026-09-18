@@ -180,7 +180,43 @@ public class MainActivity extends AppCompatActivity {
             return false;
         });
 
-        loadHomepage();
+        // If launched via an external VIEW intent, open that URL; otherwise show homepage
+        if (!handleIncomingIntent(getIntent())) {
+            loadHomepage();
+        }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleIncomingIntent(intent);
+    }
+
+    /**
+     * Handle incoming intents (e.g. ACTION_VIEW) that contain a URL to open.
+     * Returns true if an URL was loaded.
+     */
+    private boolean handleIncomingIntent(Intent intent) {
+        if (intent == null) return false;
+        String action = intent.getAction();
+        Uri data = intent.getData();
+        if (Intent.ACTION_VIEW.equals(action) && data != null) {
+            String url = data.toString();
+            if (url != null && !url.isEmpty()) {
+                webView.loadUrl(url);
+                urlInput.setText(url);
+                return true;
+            }
+        }
+        // fallback: check for common extras
+        String extraUrl = intent.getStringExtra("url");
+        if (extraUrl != null && !extraUrl.isEmpty()) {
+            webView.loadUrl(extraUrl);
+            urlInput.setText(extraUrl);
+            return true;
+        }
+        return false;
     }
 
     private void loadHomepage() {
