@@ -5,51 +5,9 @@
     android:orientation="vertical"
     android:background="@color/white">
 
-    <!-- Top Status / Header Bar -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:background="@color/white"
-        android:paddingLeft="16dp"
-        android:paddingRight="16dp">
+    <!-- Top title bar removed per user request -->
 
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/app_name"
-            android:textColor="@color/black"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/tv_clock"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/black"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:paddingRight="12dp" />
-
-        <Button
-            android:id="@+id/btn_refresh"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:text="@string/refresh"
-            android:textColor="@color/black"
-            android:textSize="12sp"
-            android:background="@color/gray_light" />
-
-    </LinearLayout>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="2dp"
-        android:background="@color/black" />
-
-    <!-- Navigation Tabs -->
+    <!-- Navigation Tabs with inline shortcut icons -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="44dp"
@@ -81,6 +39,44 @@
             android:textColor="@color/black"
             android:textSize="14sp"
             android:background="@color/white" />
+
+        <!-- small divider before icon buttons -->
+        <View
+            android:layout_width="8dp"
+            android:layout_height="match_parent" />
+
+        <!-- Right-aligned icon shortcuts -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+                <ImageButton
+                    android:id="@+id/btn_file_manager"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:contentDescription="Open file manager"
+                    android:src="@android:drawable/ic_menu_save" />
+
+                <ImageButton
+                    android:id="@+id/btn_browser"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:contentDescription="Open browser"
+                    android:src="@android:drawable/ic_menu_compass" />
+
+                <ImageButton
+                    android:id="@+id/btn_refresh_icon"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:contentDescription="@string/refresh"
+                    android:src="@android:drawable/ic_menu_rotate" />
+
+        </LinearLayout>
 
     </LinearLayout>
 

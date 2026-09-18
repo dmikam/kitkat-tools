@@ -20,6 +20,7 @@ import android.view.View;
 import android.webkit.MimeTypeMap;
 import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.ListView;
@@ -59,10 +60,11 @@ public class MainActivity extends AppCompatActivity {
         READER_NAMES.put("org.geometerplus.zlibrary.ui.android", "FBReader");
     }
 
-    private TextView tvClock;
-    private Button btnRefresh;
+    private ImageButton btnRefresh;
     private Button tabBooks;
     private Button tabApps;
+    private ImageButton btnFileManager;
+    private ImageButton btnBrowser;
     private View containerBooks;
     private View containerApps;
     private ListView lvBooks;
@@ -102,7 +104,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         overridePendingTransition(0, 0);
-        updateClock();
         loadBooks();
     }
 
@@ -111,10 +112,11 @@ public class MainActivity extends AppCompatActivity {
     // ──────────────────────────────────────────────────────────────────────────
 
     private void initViews() {
-        tvClock       = findViewById(R.id.tv_clock);
-        btnRefresh    = findViewById(R.id.btn_refresh);
+        btnRefresh    = findViewById(R.id.btn_refresh_icon);
         tabBooks      = findViewById(R.id.tab_books);
         tabApps       = findViewById(R.id.tab_apps);
+        btnFileManager = findViewById(R.id.btn_file_manager);
+        btnBrowser     = findViewById(R.id.btn_browser);
         containerBooks = findViewById(R.id.container_books);
         containerApps  = findViewById(R.id.container_apps);
         lvBooks       = findViewById(R.id.lv_books);
@@ -132,9 +134,44 @@ public class MainActivity extends AppCompatActivity {
         });
         btnRefresh.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
-                updateClock();
                 loadBooks();
                 loadApps();
+            }
+        });
+
+        btnFileManager.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                // Try to open a known StorageActivity, fallback to a generic file picker
+                try {
+                    ComponentName comp = new ComponentName("com.onyx", "com.onyx.content.browser.activity.StorageActivity");
+                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setComponent(comp);
+                    intent.setDataAndType(Uri.parse("file:///storage/emulated/0"), "*/*");
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
+                } catch (Exception e) {
+                    try {
+                        Intent pick = new Intent(Intent.ACTION_GET_CONTENT);
+                        pick.setType("*/*");
+                        pick.addCategory(Intent.CATEGORY_OPENABLE);
+                        pick.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(Intent.createChooser(pick, "Open file"));
+                    } catch (ActivityNotFoundException ex) {
+                        Toast.makeText(MainActivity.this, "No file manager available", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }
+        });
+
+        btnBrowser.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                try {
+                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://www.google.com"));
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
+                } catch (ActivityNotFoundException e) {
+                    Toast.makeText(MainActivity.this, "No browser available", Toast.LENGTH_SHORT).show();
+                }
             }
         });
 
@@ -189,9 +226,7 @@ public class MainActivity extends AppCompatActivity {
         tabApps.setTextColor(getResources().getColor(R.color.white));
     }
 
-    private void updateClock() {
-        tvClock.setText(new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date()));
-    }
+    
 
     // ──────────────────────────────────────────────────────────────────────────
     // Data loading
