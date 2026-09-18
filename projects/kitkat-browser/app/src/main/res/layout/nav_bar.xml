@@ -31,6 +31,15 @@
         android:contentDescription="Refresh"
         android:src="@android:drawable/ic_menu_rotate" />
 
+    <!-- Home Button -->
+    <ImageButton
+        android:id="@+id/btn_home"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?android:attr/selectableItemBackground"
+        android:contentDescription="Home"
+        android:src="@android:drawable/ic_menu_view" />
+
 
     <!-- Bookmark Star Button -->
     <ImageButton

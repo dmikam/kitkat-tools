@@ -50,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
         ImageButton btnBack = findViewById(R.id.btn_back);
         ImageButton btnForward = findViewById(R.id.btn_forward);
         ImageButton btnRefresh = findViewById(R.id.btn_refresh);
+        ImageButton btnHome = findViewById(R.id.btn_home);
 
 
         // BOOKMARKS
@@ -165,6 +166,8 @@ public class MainActivity extends AppCompatActivity {
 
         btnRefresh.setOnClickListener(v -> webView.reload());
 
+        btnHome.setOnClickListener(v -> loadHomepage());
+
         clearButton.setOnClickListener(v -> urlInput.setText(""));
         goButton.setOnClickListener(v -> loadFromInput());
 
@@ -176,7 +179,42 @@ public class MainActivity extends AppCompatActivity {
             return false;
         });
 
-        webView.loadUrl("https://html5test.com");
+        loadHomepage();
+    }
+
+    private void loadHomepage() {
+        List<BookmarkManager.Bookmark> bookmarks = BookmarkManager.getBookmarks(this);
+        StringBuilder sb = new StringBuilder();
+        sb.append("<!doctype html><html><head><meta name=viewport content=width=device-width,initial-scale=1>");
+        sb.append("<style>body{font-family: sans-serif;padding:12px;color:#000} h1{font-size:18px} .bm{margin:8px 0;padding:6px;border-bottom:1px solid #ddd} a{color:#000;text-decoration:none}</style>");
+        sb.append("</head><body>");
+        sb.append("<h1>Home</h1>");
+        sb.append("<form action='https://html.duckduckgo.com/html/' method='get' target='_self'>");
+        sb.append("<input name='q' type='search' placeholder='Search DuckDuckGo' style='width:70%;padding:8px' />");
+        sb.append("<input type='submit' value='Search' style='padding:8px' />");
+        sb.append("</form>");
+
+        sb.append("<h2>Bookmarks</h2>");
+        if (bookmarks.isEmpty()) {
+            sb.append("<p>No saved bookmarks.</p>");
+        } else {
+            sb.append("<div>");
+            for (BookmarkManager.Bookmark b : bookmarks) {
+                String title = b.title != null ? escapeHtml(b.title) : escapeHtml(b.url);
+                String url = b.url != null ? escapeHtml(b.url) : "";
+                sb.append("<div class='bm'><a href='" + url + "'>" + title + "</a><div style='font-size:11px;color:#666'>" + url + "</div></div>");
+            }
+            sb.append("</div>");
+        }
+
+        sb.append("</body></html>");
+
+        webView.loadDataWithBaseURL(null, sb.toString(), "text/html", "utf-8", null);
+    }
+
+    private String escapeHtml(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;");
     }
 
     @Override
