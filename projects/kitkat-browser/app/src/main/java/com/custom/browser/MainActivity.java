@@ -10,6 +10,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
+import java.net.URLEncoder;
 import android.view.inputmethod.InputMethodManager;
 import android.webkit.DownloadListener;
 import android.webkit.WebChromeClient;
@@ -186,12 +187,22 @@ public class MainActivity extends AppCompatActivity {
         List<BookmarkManager.Bookmark> bookmarks = BookmarkManager.getBookmarks(this);
         StringBuilder sb = new StringBuilder();
         sb.append("<!doctype html><html><head><meta name=viewport content=width=device-width,initial-scale=1>");
-        sb.append("<style>body{font-family: sans-serif;padding:12px;color:#000} h1{font-size:18px} .bm{margin:8px 0;padding:6px;border-bottom:1px solid #ddd} a{color:#000;text-decoration:none}</style>");
+        sb.append("<style>\n");
+        sb.append("  body{font-family:sans-serif;padding:12px;color:#000;background:#fff;}\n");
+        sb.append("  h1{font-size:18px;margin:0 0 8px 0;}\n");
+        sb.append("  .bm{margin:8px 0;padding:6px;border-bottom:1px solid #ddd;}\n");
+        sb.append("  a{color:#000;text-decoration:none;}\n");
+        sb.append("  .search-row{display:flex;gap:8px;align-items:center;margin:10px 0 14px 0;}\n");
+        sb.append("  input.search{flex:1;padding:10px;border:2px solid #888888!important;background:white;border-radius:8px;-webkit-appearance:none;-moz-appearance:none;appearance:none;}\n");
+        sb.append("  button.search-btn{padding:10px 12px;border:2px solid #888888!important;background:#999999!important;border-radius:8px;color:#000;font-weight:600;}\n");
+        sb.append("  .bm .title{font-weight:600;margin-bottom:4px;}\n");
+        sb.append("  @media (max-width:420px){.search-row{flex-direction:column} button.search-btn{width:100%}}\n");
+        sb.append("</style>");
         sb.append("</head><body>");
         sb.append("<h1>Home</h1>");
-        sb.append("<form action='https://html.duckduckgo.com/html/' method='get' target='_self'>");
-        sb.append("<input name='q' type='search' placeholder='Search DuckDuckGo' style='width:70%;padding:8px' />");
-        sb.append("<input type='submit' value='Search' style='padding:8px' />");
+        sb.append("<form action='https://html.duckduckgo.com/html/' method='get' target='_self' class='search-row'>");
+        sb.append("<input name='q' type='search' class='search' placeholder='Search DuckDuckGo' />");
+        sb.append("<button type='submit' class='search-btn'>Search</button>");
         sb.append("</form>");
 
         sb.append("<h2>Bookmarks</h2>");
@@ -259,12 +270,29 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadFromInput() {
-        String url = urlInput.getText().toString().trim();
-        if (!url.isEmpty() && !url.startsWith("http://") && !url.startsWith("https://")) {
-            url = "http://" + url;
-        }
+        String text = urlInput.getText().toString().trim();
+        if (text.isEmpty()) return;
+
+        // Heuristic: if it contains a space or doesn't contain a dot, treat as search query
+        boolean looksLikeUrl = text.contains("://") || text.startsWith("www.") || (text.contains(".") && !text.contains(" "));
+
         hideKeyboard();
-        webView.loadUrl(url);
+
+        if (!looksLikeUrl) {
+            try {
+                String q = URLEncoder.encode(text, "UTF-8");
+                String searchUrl = "https://html.duckduckgo.com/html/?q=" + q;
+                webView.loadUrl(searchUrl);
+            } catch (Exception e) {
+                webView.loadUrl("https://html.duckduckgo.com/html/?q=" + text);
+            }
+        } else {
+            String url = text;
+            if (!url.startsWith("http://") && !url.startsWith("https://")) {
+                url = "http://" + url;
+            }
+            webView.loadUrl(url);
+        }
     }
 
     private void hideKeyboard() {
