@@ -173,12 +173,20 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Single tap → open in last used reader
+        // Single tap → confirm then open in last used reader
         lvBooks.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                BookItem item = booksAdapter.getItem(position);
-                openBookInLastReader(item);
+                final BookItem item = booksAdapter.getItem(position);
+                new AlertDialog.Builder(MainActivity.this)
+                        .setMessage("Open \"" + item.getTitle() + "\"?")
+                        .setPositiveButton("Open", new DialogInterface.OnClickListener() {
+                            @Override public void onClick(DialogInterface dialog, int which) {
+                                openBookInLastReader(item);
+                            }
+                        })
+                        .setNegativeButton("Cancel", null)
+                        .show();
             }
         });
 
@@ -530,9 +538,9 @@ public class MainActivity extends AppCompatActivity {
             tvTags.setVisibility(View.GONE);
         }
 
-        // Favorite button label
-        Button btnFav = dialogView.findViewById(R.id.btn_toggle_favorite);
-        btnFav.setText(item.isFavorite() ? "Remove from favorites" : "Mark as favorite");
+        // Favorite icon state (heart glyph) — match list behavior
+        final android.widget.TextView btnFavIcon = dialogView.findViewById(R.id.btn_toggle_favorite_icon);
+        btnFavIcon.setText(item.isFavorite() ? "\u2665" : "\u2661");
 
         // Reader label — will be filled async
         final TextView tvReader = dialogView.findViewById(R.id.tv_detail_reader);
@@ -546,9 +554,13 @@ public class MainActivity extends AppCompatActivity {
         scrollView.addView(dialogView);
 
         final AlertDialog dialog = new AlertDialog.Builder(this)
-                .setView(scrollView)
-                .setNegativeButton("Close", null)
-                .create();
+            .setView(scrollView)
+            .create();
+
+        // Close icon
+        dialogView.findViewById(R.id.btn_close_dialog).setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { dialog.dismiss(); }
+        });
 
         // Action buttons
         dialogView.findViewById(R.id.btn_open_with).setOnClickListener(new View.OnClickListener() {
@@ -558,14 +570,14 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        btnFav.setOnClickListener(new View.OnClickListener() {
+        btnFavIcon.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
                 dialog.dismiss();
                 confirmFavoriteToggle(item, position);
             }
         });
 
-        dialogView.findViewById(R.id.btn_delete).setOnClickListener(new View.OnClickListener() {
+        dialogView.findViewById(R.id.btn_delete_icon).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
                 dialog.dismiss();
                 confirmDeleteBook(item, position);

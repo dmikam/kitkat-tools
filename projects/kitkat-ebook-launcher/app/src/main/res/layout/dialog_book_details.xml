@@ -1,132 +1,162 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:background="@color/white"
-    android:padding="16dp">
+    android:layout_height="wrap_content">
 
-    <!-- Cover image, lazy-loaded, hidden if unavailable -->
-    <ImageView
-        android:id="@+id/iv_cover"
-        android:layout_width="120dp"
-        android:layout_height="160dp"
-        android:layout_gravity="center_horizontal"
-        android:scaleType="fitCenter"
-        android:visibility="gone" />
-
-    <!-- Title -->
-    <TextView
-        android:id="@+id/tv_detail_title"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:textColor="@color/black"
-        android:textSize="17sp"
-        android:textStyle="bold" />
+        android:orientation="vertical"
+        android:background="@color/white"
+        android:padding="16dp">
 
-    <!-- Author -->
-    <TextView
-        android:id="@+id/tv_detail_author"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textColor="@color/gray_dark"
-        android:textSize="14sp" />
+        <!-- Cover image, lazy-loaded, hidden if unavailable -->
+        <ImageView
+            android:id="@+id/iv_cover"
+            android:layout_width="120dp"
+            android:layout_height="160dp"
+            android:layout_gravity="center_horizontal"
+            android:scaleType="fitCenter"
+            android:visibility="gone" />
 
-    <!-- Divider -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginTop="12dp"
-        android:layout_marginBottom="12dp"
-        android:background="@color/gray_border" />
+        <!-- Title -->
+        <TextView
+            android:id="@+id/tv_detail_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:textColor="@color/black"
+            android:textSize="17sp"
+            android:textStyle="bold" />
 
-    <!-- Metadata rows -->
-    <TextView
-        android:id="@+id/tv_detail_format"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textColor="@color/black"
-        android:textSize="13sp" />
+        <!-- Author -->
+        <TextView
+            android:id="@+id/tv_detail_author"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="@color/gray_dark"
+            android:textSize="14sp" />
 
-    <TextView
-        android:id="@+id/tv_detail_progress"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textColor="@color/black"
-        android:textSize="13sp" />
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="12dp"
+            android:background="@color/gray_border" />
 
-    <TextView
-        android:id="@+id/tv_detail_last_access"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textColor="@color/black"
-        android:textSize="13sp" />
+        <!-- Metadata rows -->
+        <TextView
+            android:id="@+id/tv_detail_format"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/black"
+            android:textSize="13sp" />
 
-    <TextView
-        android:id="@+id/tv_detail_reader"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textColor="@color/black"
-        android:textSize="13sp" />
+        <TextView
+            android:id="@+id/tv_detail_progress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="@color/black"
+            android:textSize="13sp" />
 
-    <TextView
-        android:id="@+id/tv_detail_series"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textColor="@color/black"
-        android:textSize="13sp" />
+        <TextView
+            android:id="@+id/tv_detail_last_access"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="@color/black"
+            android:textSize="13sp" />
 
-    <TextView
-        android:id="@+id/tv_detail_tags"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textColor="@color/black"
-        android:textSize="13sp" />
+        <TextView
+            android:id="@+id/tv_detail_reader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="@color/black"
+            android:textSize="13sp" />
 
-    <!-- Divider -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginTop="12dp"
-        android:layout_marginBottom="8dp"
-        android:background="@color/gray_border" />
+        <TextView
+            android:id="@+id/tv_detail_series"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="@color/black"
+            android:textSize="13sp" />
 
-    <!-- Actions -->
-    <Button
-        android:id="@+id/btn_open_with"
-        android:layout_width="match_parent"
-        android:layout_height="44dp"
-        android:text="Open with..."
-        android:textColor="@color/black"
-        android:textSize="14sp"
-        android:background="@color/gray_light"
-        android:layout_marginBottom="6dp" />
+        <TextView
+            android:id="@+id/tv_detail_tags"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="@color/black"
+            android:textSize="13sp" />
 
-    <Button
-        android:id="@+id/btn_toggle_favorite"
-        android:layout_width="match_parent"
-        android:layout_height="44dp"
-        android:text="Toggle Favorite"
-        android:textColor="@color/black"
-        android:textSize="14sp"
-        android:background="@color/gray_light"
-        android:layout_marginBottom="6dp" />
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="8dp"
+            android:background="@color/gray_border" />
 
-    <Button
-        android:id="@+id/btn_delete"
-        android:layout_width="match_parent"
-        android:layout_height="44dp"
-        android:text="Delete book..."
-        android:textColor="@color/black"
-        android:textSize="14sp"
-        android:background="@color/gray_light" />
+        <!-- Footer actions: delete icon, open-with center, favorite icon -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:orientation="horizontal">
 
-</LinearLayout>
+            <ImageButton
+                android:id="@+id/btn_delete_icon"
+                android:layout_width="48dp"
+                android:layout_height="match_parent"
+                android:layout_marginRight="8dp"
+                android:background="@drawable/bg_black"
+                android:contentDescription="Delete"
+                android:src="@android:drawable/ic_menu_delete"
+                android:tint="@color/white" />
+
+            <Button
+                android:id="@+id/btn_open_with"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginLeft="4dp"
+                android:layout_marginRight="4dp"
+                android:text="Open with..."
+                android:textColor="@color/black"
+                android:textSize="14sp"
+                android:background="@color/gray_light" />
+
+            <TextView
+                android:id="@+id/btn_toggle_favorite_icon"
+                android:layout_width="48dp"
+                android:layout_height="match_parent"
+                android:layout_marginLeft="8dp"
+                android:gravity="center"
+                android:textSize="22sp"
+                android:textColor="@color/black"
+                android:background="@drawable/bg_gray_light"
+                android:clickable="true"
+                android:focusable="false"
+                android:text="\u2661" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Close button top-right -->
+    <ImageButton
+        android:id="@+id/btn_close_dialog"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_gravity="top|end"
+        android:background="@null"
+        android:src="@android:drawable/ic_menu_close_clear_cancel"
+        android:contentDescription="Close"
+        android:padding="8dp" />
+
+</FrameLayout>
 
