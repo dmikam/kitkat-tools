@@ -245,16 +245,17 @@ public class MainActivity extends AppCompatActivity {
                 List<BookItem> list = new ArrayList<>();
                 Cursor cursor = null;
                 try {
-                    String[] projection = {"_id","Title","Authors","Progress",
+                        String[] projection = {"_id","Title","Name","Authors","Progress",
                             "Location","Type","MD5","LastAccess","Favorite","Tags","Series"};
-                    cursor = getContentResolver().query(
+                        cursor = getContentResolver().query(
                             CMS_METADATA_URI, projection,
-                            "Title IS NOT NULL AND Location IS NOT NULL",
+                            "Location IS NOT NULL",
                             null, "LastAccess DESC LIMIT 100");
 
                     if (cursor != null && cursor.moveToFirst()) {
                         int colId       = cursor.getColumnIndex("_id");
                         int colTitle    = cursor.getColumnIndex("Title");
+                        int colName     = cursor.getColumnIndex("Name");
                         int colAuthor   = cursor.getColumnIndex("Authors");
                         int colProgress = cursor.getColumnIndex("Progress");
                         int colLocation = cursor.getColumnIndex("Location");
@@ -266,7 +267,19 @@ public class MainActivity extends AppCompatActivity {
                         int colSeries   = cursor.getColumnIndex("Series");
 
                         do {
-                            String title = cursor.getString(colTitle);
+                            String title = cursor.isNull(colTitle) ? null : cursor.getString(colTitle);
+                            if (TextUtils.isEmpty(title) || "NULL".equalsIgnoreCase(title)) {
+                                // Try fallback fields: Name column, then filename from Location
+                                if (colName >= 0 && !cursor.isNull(colName)) {
+                                    title = cursor.getString(colName);
+                                }
+                            }
+                            if (TextUtils.isEmpty(title) || "NULL".equalsIgnoreCase(title)) {
+                                String loc = cursor.isNull(colLocation) ? null : cursor.getString(colLocation);
+                                if (!TextUtils.isEmpty(loc)) {
+                                    title = new File(loc).getName();
+                                }
+                            }
                             if (TextUtils.isEmpty(title) || "NULL".equalsIgnoreCase(title)) continue;
 
                             String progress = cursor.isNull(colProgress) ? null : cursor.getString(colProgress);
