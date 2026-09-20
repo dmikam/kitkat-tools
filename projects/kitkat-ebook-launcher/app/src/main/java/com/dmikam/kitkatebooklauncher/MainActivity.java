@@ -61,6 +61,25 @@ public class MainActivity extends AppCompatActivity {
         READER_NAMES.put("org.geometerplus.zlibrary.ui.android", "FBReader");
     }
 
+    static long normalizeLastAccessTimestamp(long rawValue) {
+        if (rawValue <= 0L) {
+            return 0L;
+        }
+
+        final long unixEpochStartMillis = 946684800000L;  // 2000-01-01
+        final long unixEpochEndMillis = 4102444800000L;   // 2100-01-01
+
+        if (rawValue >= unixEpochStartMillis && rawValue <= unixEpochEndMillis) {
+            return rawValue;
+        }
+
+        if (rawValue >= 946684800L && rawValue <= 4102444800L) {
+            return rawValue * 1000L;
+        }
+
+        return 0L;
+    }
+
     private ImageButton btnRefresh;
     private Button tabBooks;
     private Button tabApps;
@@ -561,12 +580,17 @@ public class MainActivity extends AppCompatActivity {
         ((TextView) dialogView.findViewById(R.id.tv_detail_progress))
                 .setText("Progress: " + (TextUtils.isEmpty(progress) ? "—" : progress));
 
-        long ts = item.getLastAccess();
+        long ts = normalizeLastAccessTimestamp(item.getLastAccess());
         String lastAccessStr = ts > 0
-                ? new SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault()).format(new Date(ts * 1000L))
+                ? new SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
+                    .format(new Date(ts))
                 : "—";
-        ((TextView) dialogView.findViewById(R.id.tv_detail_last_access))
-                .setText("Last opened: " + lastAccessStr);
+        TextView lastAccessView = dialogView.findViewById(R.id.tv_detail_last_access);
+        if (ts <= 0L || item.getLastAccess() < 0L) {
+            lastAccessView.setText("Last opened: —");
+        } else {
+            lastAccessView.setText("Last opened: " + lastAccessStr);
+        }
 
         // Series & tags
         TextView tvSeries = dialogView.findViewById(R.id.tv_detail_series);
