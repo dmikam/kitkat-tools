@@ -142,11 +142,9 @@ public class MainActivity extends AppCompatActivity {
         btnFileManager.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
                 // Try to open a known StorageActivity, fallback to a generic file picker
-                try {
-                    ComponentName comp = new ComponentName("com.onyx", "com.onyx.content.browser.activity.StorageActivity");
-                    Intent intent = new Intent(Intent.ACTION_VIEW);
-                    intent.setComponent(comp);
-                    intent.setDataAndType(Uri.parse("file:///storage/emulated/0"), "*/*");
+                    try {
+                        Intent intent = new Intent(Intent.ACTION_VIEW);
+                        intent.setDataAndType(Uri.parse("file:///storage/emulated/0/"), "*/*");
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(intent);
                 } catch (Exception e) {
