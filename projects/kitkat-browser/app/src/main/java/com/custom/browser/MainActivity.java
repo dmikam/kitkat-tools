@@ -204,6 +204,11 @@ public class MainActivity extends AppCompatActivity {
         if (Intent.ACTION_VIEW.equals(action) && data != null) {
             String url = data.toString();
             if (url != null && !url.isEmpty()) {
+                // Show homepage on about:blank
+                if (url.equalsIgnoreCase("about:blank")) {
+                    loadHomepage();
+                    return true;
+                }
                 webView.loadUrl(url);
                 urlInput.setText(url);
                 return true;
@@ -212,6 +217,10 @@ public class MainActivity extends AppCompatActivity {
         // fallback: check for common extras
         String extraUrl = intent.getStringExtra("url");
         if (extraUrl != null && !extraUrl.isEmpty()) {
+            if (extraUrl.equalsIgnoreCase("about:blank")) {
+                loadHomepage();
+                return true;
+            }
             webView.loadUrl(extraUrl);
             urlInput.setText(extraUrl);
             return true;
