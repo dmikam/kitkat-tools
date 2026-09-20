@@ -63,6 +63,7 @@ public class BooksAdapter extends BaseAdapter {
             holder = new ViewHolder();
             holder.tvTitle = convertView.findViewById(R.id.tv_book_title);
             holder.tvAuthor = convertView.findViewById(R.id.tv_book_author);
+            holder.tvRating = convertView.findViewById(R.id.tv_book_rating);
             holder.tvProgress = convertView.findViewById(R.id.tv_book_progress);
             holder.pbProgress = convertView.findViewById(R.id.pb_progress);
             holder.tvFavorite = convertView.findViewById(R.id.tv_favorite);
@@ -83,6 +84,19 @@ public class BooksAdapter extends BaseAdapter {
         String author = item.getAuthor();
         holder.tvAuthor.setText(TextUtils.isEmpty(author) ?
                 convertView.getContext().getString(R.string.unknown_author) : author);
+
+        // Rating stars (small) — show 1..5 as filled/empty stars next to author
+        int rating = item.getRating();
+        if (rating <= 0) {
+            holder.tvRating.setVisibility(View.GONE);
+        } else {
+            holder.tvRating.setVisibility(View.VISIBLE);
+            StringBuilder stars = new StringBuilder();
+            for (int i = 0; i < 5; i++) {
+                if (i < rating) stars.append('\u2605'); else stars.append('\u2606');
+            }
+            holder.tvRating.setText(stars.toString());
+        }
 
         // Progress bar + text
         int pct = item.getProgressPercent();
@@ -116,6 +130,7 @@ public class BooksAdapter extends BaseAdapter {
     private static class ViewHolder {
         TextView tvTitle;
         TextView tvAuthor;
+        TextView tvRating;
         TextView tvProgress;
         ProgressBar pbProgress;
         TextView tvFavorite;

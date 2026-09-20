@@ -14,11 +14,12 @@ public class BookItem {
     private final String tags;
     private final String series;
     private boolean favorite;
+    private int rating;
 
     public BookItem(long id, String title, String author, String progress,
                     int currentPage, int totalPages,
                     String location, String type, String md5,
-                    long lastAccess, String tags, String series, boolean favorite) {
+                    long lastAccess, String tags, String series, int rating, boolean favorite) {
         this.id = id;
         this.title = title;
         this.author = author;
@@ -32,6 +33,7 @@ public class BookItem {
         this.tags = tags;
         this.series = series;
         this.favorite = favorite;
+        this.rating = rating;
     }
 
     public long getId() { return id; }
@@ -48,6 +50,9 @@ public class BookItem {
     public String getSeries() { return series; }
     public boolean isFavorite() { return favorite; }
     public void setFavorite(boolean favorite) { this.favorite = favorite; }
+
+    public int getRating() { return rating; }
+    public void setRating(int rating) { this.rating = rating; }
 
     /** Returns progress as 0-100 integer, or -1 if unavailable. */
     public int getProgressPercent() {

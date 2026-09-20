@@ -26,6 +26,7 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.RatingBar;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -246,7 +247,7 @@ public class MainActivity extends AppCompatActivity {
                 Cursor cursor = null;
                 try {
                         String[] projection = {"_id","Title","Name","Authors","Progress",
-                            "Location","Type","MD5","LastAccess","Favorite","Tags","Series"};
+                            "Location","Type","MD5","LastAccess","Favorite","Tags","Series","Rating"};
                         cursor = getContentResolver().query(
                             CMS_METADATA_URI, projection,
                             "Location IS NOT NULL",
@@ -265,6 +266,7 @@ public class MainActivity extends AppCompatActivity {
                         int colFav      = cursor.getColumnIndex("Favorite");
                         int colTags     = cursor.getColumnIndex("Tags");
                         int colSeries   = cursor.getColumnIndex("Series");
+                        int colRating   = cursor.getColumnIndex("Rating");
 
                         do {
                             String title = cursor.isNull(colTitle) ? null : cursor.getString(colTitle);
@@ -292,11 +294,12 @@ public class MainActivity extends AppCompatActivity {
                                 } catch (NumberFormatException ignore) {}
                             }
 
-                            boolean favorite = !cursor.isNull(colFav) && cursor.getInt(colFav) == 1;
-                            String tags   = cursor.isNull(colTags)   ? null : cursor.getString(colTags);
-                            String series = cursor.isNull(colSeries) ? null : cursor.getString(colSeries);
+                                boolean favorite = !cursor.isNull(colFav) && cursor.getInt(colFav) == 1;
+                                String tags   = cursor.isNull(colTags)   ? null : cursor.getString(colTags);
+                                String series = cursor.isNull(colSeries) ? null : cursor.getString(colSeries);
+                                int rating = (colRating >= 0 && !cursor.isNull(colRating)) ? cursor.getInt(colRating) : 0;
 
-                            list.add(new BookItem(
+                                list.add(new BookItem(
                                     cursor.getLong(colId),
                                     title,
                                     cursor.isNull(colAuthor)   ? null : cursor.getString(colAuthor),
@@ -306,8 +309,8 @@ public class MainActivity extends AppCompatActivity {
                                     cursor.isNull(colType)     ? null : cursor.getString(colType),
                                     cursor.getString(colMd5),
                                     cursor.getLong(colAccess),
-                                    tags, series, favorite
-                            ));
+                                    tags, series, rating, favorite
+                                ));
                         } while (cursor.moveToNext());
                     }
                 } catch (Exception e) {
@@ -506,6 +509,37 @@ public class MainActivity extends AppCompatActivity {
         }.execute();
     }
 
+    private void setRating(final BookItem item, final int position, final int rating) {
+        new AsyncTask<Void, Void, Boolean>() {
+            @Override
+            protected Boolean doInBackground(Void... voids) {
+                try {
+                    ContentValues values = new ContentValues();
+                    values.put("Rating", rating);
+                    int rows = getContentResolver().update(
+                            CMS_METADATA_URI, values,
+                            "MD5 = ?", new String[]{item.getMd5()});
+                    return rows > 0;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return false;
+                }
+            }
+
+            @Override
+            protected void onPostExecute(Boolean success) {
+                if (success) {
+                    item.setRating(rating);
+                    Toast.makeText(MainActivity.this,
+                            "Rating updated", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(MainActivity.this,
+                            "Could not update rating", Toast.LENGTH_SHORT).show();
+                }
+            }
+        }.execute();
+    }
+
     // ──────────────────────────────────────────────────────────────────────────
     // Long-press details dialog
     // ──────────────────────────────────────────────────────────────────────────
@@ -554,6 +588,33 @@ public class MainActivity extends AppCompatActivity {
         // Favorite icon state (heart glyph) — match list behavior
         final android.widget.TextView btnFavIcon = dialogView.findViewById(R.id.btn_toggle_favorite_icon);
         btnFavIcon.setText(item.isFavorite() ? "\u2665" : "\u2661");
+
+        // Rating bar — allow 1..5 stars, confirmation on change
+        final RatingBar ratingBar = dialogView.findViewById(R.id.rating_bar);
+        final int[] prevRating = new int[] { item.getRating() };
+        ratingBar.setNumStars(5);
+        ratingBar.setStepSize(1f);
+        ratingBar.setRating(prevRating[0]);
+        ratingBar.setOnRatingBarChangeListener(new RatingBar.OnRatingBarChangeListener() {
+            @Override
+            public void onRatingChanged(final RatingBar rb, final float rating, boolean fromUser) {
+                if (!fromUser) return;
+                final int newRating = (int) rating;
+                new AlertDialog.Builder(MainActivity.this)
+                        .setMessage("Set rating to " + newRating + " star(s)?")
+                        .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                            @Override public void onClick(DialogInterface dialogInterface, int which) {
+                                setRating(item, position, newRating);
+                                prevRating[0] = newRating;
+                            }
+                        })
+                        .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                            @Override public void onClick(DialogInterface dialogInterface, int which) {
+                                rb.setRating(prevRating[0]);
+                            }
+                        }).show();
+            }
+        });
 
         // Reader label — will be filled async
         final TextView tvReader = dialogView.findViewById(R.id.tv_detail_reader);
