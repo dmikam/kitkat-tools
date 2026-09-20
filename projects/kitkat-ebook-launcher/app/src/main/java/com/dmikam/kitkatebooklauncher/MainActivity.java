@@ -166,7 +166,7 @@ public class MainActivity extends AppCompatActivity {
         btnBrowser.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
                 try {
-                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://www.google.com"));
+                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("about:blank"));
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(intent);
                 } catch (ActivityNotFoundException e) {
