@@ -19,6 +19,16 @@
             android:scaleType="fitCenter"
             android:visibility="gone" />
 
+        <!-- Small loading indicator shown while extracting cover -->
+        <ProgressBar
+            android:id="@+id/pb_cover_loading"
+            style="?android:attr/progressBarStyleSmall"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="4dp"
+            android:visibility="gone" />
+
         <!-- Title -->
         <TextView
             android:id="@+id/tv_detail_title"

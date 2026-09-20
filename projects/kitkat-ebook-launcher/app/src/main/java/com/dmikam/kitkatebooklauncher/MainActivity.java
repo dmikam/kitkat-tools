@@ -27,6 +27,7 @@ import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.GridView;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.ListView;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -703,29 +704,75 @@ public class MainActivity extends AppCompatActivity {
         }.execute();
     }
 
-    /** Try embedded cover in ebook files; otherwise generate a placeholder cover. */
+    /** Try cached cover, embedded cover in ebook files, otherwise generate a placeholder. */
     private void loadCoverAsync(final BookItem item, final ImageView ivCover) {
+        // Show placeholder and spinner immediately
+        final View root = ivCover.getRootView();
+        final ProgressBar pb = root.findViewById(R.id.pb_cover_loading);
+        final Bitmap placeholder = generatePlaceholderCover(item.getTitle());
+        ivCover.setImageBitmap(placeholder);
+        ivCover.setVisibility(View.VISIBLE);
+        if (pb != null) pb.setVisibility(View.VISIBLE);
+
         new AsyncTask<Void, Void, Bitmap>() {
             @Override
             protected Bitmap doInBackground(Void... voids) {
                 try {
+                    // 1) Try disk cache
+                    File cache = getCoverCacheFile(item);
+                    if (cache != null && cache.exists()) {
+                        Bitmap cached = BitmapFactory.decodeFile(cache.getAbsolutePath());
+                        if (cached != null) return cached;
+                    }
+
+                    // 2) Try embedded cover
                     if (!TextUtils.isEmpty(item.getLocation())) {
                         Bitmap embedded = loadEmbeddedCoverFromFile(new File(item.getLocation()));
-                        if (embedded != null) return embedded;
+                        if (embedded != null) {
+                            // Save to cache (best-effort)
+                            try {
+                                if (cache != null) {
+                                    File dir = cache.getParentFile();
+                                    if (dir != null && !dir.exists()) dir.mkdirs();
+                                    java.io.FileOutputStream fos = new java.io.FileOutputStream(cache);
+                                    embedded.compress(Bitmap.CompressFormat.PNG, 90, fos);
+                                    fos.close();
+                                }
+                            } catch (Exception ignore) {}
+                            return embedded;
+                        }
                     }
-                } catch (Exception ignore) {
-                }
-                return generatePlaceholderCover(item.getTitle());
+                } catch (Exception ignore) {}
+                return null; // keep placeholder
             }
 
             @Override
             protected void onPostExecute(Bitmap bmp) {
+                if (pb != null) pb.setVisibility(View.GONE);
                 if (bmp != null) {
                     ivCover.setImageBitmap(bmp);
+                    ivCover.setVisibility(View.VISIBLE);
+                } else {
+                    // leave placeholder shown
                     ivCover.setVisibility(View.VISIBLE);
                 }
             }
         }.execute();
+    }
+
+    private File getCoverCacheFile(BookItem item) {
+        try {
+            String key = item.getMd5();
+            if (TextUtils.isEmpty(key)) {
+                String loc = item.getLocation();
+                key = Integer.toHexString(loc == null ? 0 : loc.hashCode());
+            }
+            String safe = "cover_" + key + ".png";
+            File dir = getCacheDir();
+            return new File(dir, safe);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private Bitmap loadEmbeddedCoverFromFile(File file) {
@@ -866,6 +913,7 @@ public class MainActivity extends AppCompatActivity {
 
     private Bitmap extractCoverFromFb2(File file) throws Exception {
         FileInputStream stream = null;
+        final int MAX_BASE64_CHARS = 2 * 1024 * 1024; // 2 MB of base64 text ~= ~1.5MB binary
         try {
             stream = new FileInputStream(file);
             XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
@@ -877,24 +925,26 @@ public class MainActivity extends AppCompatActivity {
             boolean readingBinary = false;
             String pendingMime = null;
             StringBuilder pendingData = null;
+            boolean inCoverpage = false;
 
             int eventType = parser.getEventType();
             while (eventType != XmlPullParser.END_DOCUMENT) {
                 String tagName = parser.getName();
 
                 if (eventType == XmlPullParser.START_TAG) {
-                    if ("image".equalsIgnoreCase(tagName)) {
-                        String href = parser.getAttributeValue(null, "href");
-                        if (TextUtils.isEmpty(href)) {
-                            href = parser.getAttributeValue("http://www.w3.org/1999/xlink", "href");
-                        }
-                        if (TextUtils.isEmpty(href)) {
-                            href = parser.getAttributeValue("http://www.w3.org/1999/xlink", "href");
-                        }
-                        if (!TextUtils.isEmpty(href)) {
-                            String normalized = normalizeFb2Reference(href);
-                            if (!TextUtils.isEmpty(normalized)) {
-                                coverId = normalized;
+                    if ("coverpage".equalsIgnoreCase(tagName)) {
+                        inCoverpage = true;
+                    } else if ("image".equalsIgnoreCase(tagName)) {
+                        if (inCoverpage) {
+                            String href = parser.getAttributeValue(null, "href");
+                            if (TextUtils.isEmpty(href)) {
+                                href = parser.getAttributeValue("http://www.w3.org/1999/xlink", "href");
+                            }
+                            if (!TextUtils.isEmpty(href)) {
+                                String normalized = normalizeFb2Reference(href);
+                                if (!TextUtils.isEmpty(normalized)) {
+                                    coverId = normalized;
+                                }
                             }
                         }
                     } else if ("binary".equalsIgnoreCase(tagName)) {
@@ -910,9 +960,22 @@ public class MainActivity extends AppCompatActivity {
                     }
                 } else if (eventType == XmlPullParser.TEXT) {
                     if (readingBinary && pendingData != null) {
-                        pendingData.append(parser.getText());
+                        String txt = parser.getText();
+                        if (txt != null) {
+                            if (pendingData.length() + txt.length() > MAX_BASE64_CHARS) {
+                                // Too large — abort this binary to avoid OOM
+                                readingBinary = false;
+                                pendingData = null;
+                                pendingMime = null;
+                            } else {
+                                pendingData.append(txt);
+                            }
+                        }
                     }
                 } else if (eventType == XmlPullParser.END_TAG) {
+                    if ("coverpage".equalsIgnoreCase(tagName)) {
+                        inCoverpage = false;
+                    }
                     if ("binary".equalsIgnoreCase(tagName) && readingBinary && pendingData != null) {
                         Bitmap bm = decodeBase64Bitmap(pendingData.toString());
                         if (bm != null) return bm;
@@ -941,12 +1004,22 @@ public class MainActivity extends AppCompatActivity {
                         if (id != null && !isObviousNonCoverName(id) && (looksLikeCoverName(id) || !id.contains("."))) {
                             StringBuilder data = new StringBuilder();
                             int inner = parser.next();
+                            boolean aborted = false;
                             while (inner != XmlPullParser.END_DOCUMENT) {
                                 if (inner == XmlPullParser.TEXT) {
-                                    data.append(parser.getText());
+                                    String t = parser.getText();
+                                    if (t != null) {
+                                        if (data.length() + t.length() > MAX_BASE64_CHARS) {
+                                            aborted = true;
+                                            break;
+                                        }
+                                        data.append(t);
+                                    }
                                 } else if (inner == XmlPullParser.END_TAG && "binary".equalsIgnoreCase(parser.getName())) {
-                                    Bitmap bm = decodeBase64Bitmap(data.toString());
-                                    if (bm != null) return bm;
+                                    if (!aborted) {
+                                        Bitmap bm = decodeBase64Bitmap(data.toString());
+                                        if (bm != null) return bm;
+                                    }
                                     break;
                                 }
                                 inner = parser.next();
@@ -1100,15 +1173,21 @@ public class MainActivity extends AppCompatActivity {
             @Override
             protected Boolean doInBackground(Void... voids) {
                 try {
-                    // Delete file from disk
-                    File f = new File(item.getLocation());
-                    boolean fileDeleted = !f.exists() || f.delete();
+                        // Delete file from disk
+                        File f = new File(item.getLocation());
+                        boolean fileDeleted = !f.exists() || f.delete();
 
-                    // Remove from provider
-                    getContentResolver().delete(
+                        // Remove from provider
+                        getContentResolver().delete(
                             CMS_METADATA_URI, "MD5 = ?", new String[]{item.getMd5()});
 
-                    return fileDeleted;
+                        // Remove cached cover if any
+                        try {
+                        File cache = getCoverCacheFile(item);
+                        if (cache != null && cache.exists()) cache.delete();
+                        } catch (Exception ignore) {}
+
+                        return fileDeleted;
                 } catch (Exception e) {
                     e.printStackTrace();
                     return false;
