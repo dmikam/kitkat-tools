@@ -11,7 +11,11 @@ import android.content.pm.ResolveInfo;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.net.Uri;
+import android.util.Base64;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -33,6 +37,10 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserFactory;
+
+import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -193,30 +201,12 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Single tap → confirm then open in last used reader
+        // Single tap → details dialog
         lvBooks.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                final BookItem item = booksAdapter.getItem(position);
-                new AlertDialog.Builder(MainActivity.this)
-                        .setMessage("Open \"" + item.getTitle() + "\"?")
-                        .setPositiveButton("Open", new DialogInterface.OnClickListener() {
-                            @Override public void onClick(DialogInterface dialog, int which) {
-                                openBookInLastReader(item);
-                            }
-                        })
-                        .setNegativeButton("Cancel", null)
-                        .show();
-            }
-        });
-
-        // Long press → details dialog
-        lvBooks.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
-            @Override
-            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
                 BookItem item = booksAdapter.getItem(position);
                 showBookDetailsDialog(item, position);
-                return true;
             }
         });
 
@@ -661,6 +651,13 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // Action buttons
+        dialogView.findViewById(R.id.btn_read).setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                dialog.dismiss();
+                openBookInLastReader(item);
+            }
+        });
+
         dialogView.findViewById(R.id.btn_open_with).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
                 dialog.dismiss();
@@ -700,39 +697,25 @@ public class MainActivity extends AppCompatActivity {
                 tvReader.setText("Last reader: " + result[0]);
                 // Load cover only if dialog is still shown
                 if (dialog.isShowing()) {
-                    loadCoverAsync(item.getMd5(), ivCover);
+                    loadCoverAsync(item, ivCover);
                 }
             }
         }.execute();
     }
 
-    /** Load cover thumbnail lazily, downsample to avoid heap pressure. */
-    private void loadCoverAsync(final String md5, final ImageView ivCover) {
+    /** Try embedded cover in ebook files; otherwise generate a placeholder cover. */
+    private void loadCoverAsync(final BookItem item, final ImageView ivCover) {
         new AsyncTask<Void, Void, Bitmap>() {
             @Override
             protected Bitmap doInBackground(Void... voids) {
-                Cursor c = null;
                 try {
-                    c = getContentResolver().query(
-                            CMS_THUMBNAIL_URI,
-                            new String[]{"Thumbnail"},
-                            "MD5 = ?",
-                            new String[]{md5},
-                            null);
-                    if (c != null && c.moveToFirst()) {
-                        byte[] blob = c.getBlob(0);
-                        if (blob != null && blob.length > 0) {
-                            // Decode with inSampleSize=2 to halve dimensions and memory
-                            BitmapFactory.Options opts = new BitmapFactory.Options();
-                            opts.inSampleSize = 2;
-                            return BitmapFactory.decodeByteArray(blob, 0, blob.length, opts);
-                        }
+                    if (!TextUtils.isEmpty(item.getLocation())) {
+                        Bitmap embedded = loadEmbeddedCoverFromFile(new File(item.getLocation()));
+                        if (embedded != null) return embedded;
                     }
                 } catch (Exception ignore) {
-                } finally {
-                    if (c != null) c.close();
                 }
-                return null;
+                return generatePlaceholderCover(item.getTitle());
             }
 
             @Override
@@ -743,6 +726,355 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }.execute();
+    }
+
+    private Bitmap loadEmbeddedCoverFromFile(File file) {
+        if (file == null || !file.exists()) return null;
+        String path = file.getAbsolutePath().toLowerCase(Locale.US);
+        try {
+            if (path.endsWith(".epub")) {
+                return extractCoverFromEpub(file);
+            }
+            if (path.endsWith(".fb2")) {
+                return extractCoverFromFb2(file);
+            }
+        } catch (Exception ignore) {
+        }
+        return null;
+    }
+
+    private Bitmap extractCoverFromEpub(File file) throws Exception {
+        java.util.zip.ZipFile zip = new java.util.zip.ZipFile(file);
+        try {
+            String opfPath = findEpubOpfPath(zip);
+            if (opfPath != null) {
+                String coverHref = findEpubCoverHref(zip, opfPath);
+                if (coverHref != null) {
+                    java.util.zip.ZipEntry coverEntry = zip.getEntry(coverHref);
+                    if (coverEntry != null) {
+                        Bitmap bm = decodeImageFromZipEntry(zip, coverEntry);
+                        if (bm != null) return bm;
+                    }
+                }
+            }
+
+            java.util.ArrayList<java.util.zip.ZipEntry> candidates = new java.util.ArrayList<java.util.zip.ZipEntry>();
+            java.util.Enumeration<? extends java.util.zip.ZipEntry> allEntries = zip.entries();
+            while (allEntries.hasMoreElements()) {
+                java.util.zip.ZipEntry entry = allEntries.nextElement();
+                String name = entry.getName().toLowerCase(Locale.US);
+                if (isImageFile(name) && looksLikeCoverName(name)) {
+                    candidates.add(entry);
+                }
+            }
+            for (java.util.zip.ZipEntry entry : candidates) {
+                Bitmap bm = decodeImageFromZipEntry(zip, entry);
+                if (bm != null) return bm;
+            }
+
+            allEntries = zip.entries();
+            while (allEntries.hasMoreElements()) {
+                java.util.zip.ZipEntry entry = allEntries.nextElement();
+                String name = entry.getName().toLowerCase(Locale.US);
+                if (isImageFile(name) && !isObviousNonCoverName(name)) {
+                    Bitmap bm = decodeImageFromZipEntry(zip, entry);
+                    if (bm != null) return bm;
+                }
+            }
+            return null;
+        } finally {
+            zip.close();
+        }
+    }
+
+    private String findEpubOpfPath(java.util.zip.ZipFile zip) throws Exception {
+        java.util.zip.ZipEntry containerEntry = zip.getEntry("META-INF/container.xml");
+        if (containerEntry == null) return null;
+
+        byte[] bytes = readZipEntryBytes(zip, containerEntry);
+        String xml = new String(bytes, "UTF-8");
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
+                "<rootfile[^>]*full-path=['\"]([^'\"]+)['\"][^>]*>",
+                java.util.regex.Pattern.CASE_INSENSITIVE | java.util.regex.Pattern.DOTALL);
+        java.util.regex.Matcher matcher = pattern.matcher(xml);
+        if (matcher.find()) {
+            return matcher.group(1).replace('\\', '/');
+        }
+        return null;
+    }
+
+    private String findEpubCoverHref(java.util.zip.ZipFile zip, String opfPath) throws Exception {
+        java.util.zip.ZipEntry opfEntry = zip.getEntry(opfPath);
+        if (opfEntry == null) return null;
+
+        byte[] bytes = readZipEntryBytes(zip, opfEntry);
+        String xml = new String(bytes, "UTF-8");
+
+        java.util.regex.Pattern coverPattern = java.util.regex.Pattern.compile(
+                "<item[^>]*\b(?:id=['\"]cover['\"]|properties=['\"][^'\"]*cover-image[^'\"]*['\"]) [^>]*\bhref=['\"]([^'\"]+)['\"][^>]*>",
+                java.util.regex.Pattern.CASE_INSENSITIVE | java.util.regex.Pattern.DOTALL);
+        java.util.regex.Matcher matcher = coverPattern.matcher(xml);
+        if (matcher.find()) {
+            return matcher.group(1).replace('\\', '/');
+        }
+
+        java.util.regex.Pattern fallbackPattern = java.util.regex.Pattern.compile(
+                "<item[^>]*\bhref=['\"]([^'\"]+)['\"][^>]*>",
+                java.util.regex.Pattern.CASE_INSENSITIVE | java.util.regex.Pattern.DOTALL);
+        matcher = fallbackPattern.matcher(xml);
+        while (matcher.find()) {
+            String href = matcher.group(1).replace('\\', '/');
+            String lower = href.toLowerCase(Locale.US);
+            if (looksLikeCoverName(lower) && !isObviousNonCoverName(lower)) {
+                return href;
+            }
+        }
+        return null;
+    }
+
+    private boolean isImageFile(String name) {
+        return name.endsWith(".png") || name.endsWith(".jpg") || name.endsWith(".jpeg")
+                || name.endsWith(".gif") || name.endsWith(".webp");
+    }
+
+    private boolean looksLikeCoverName(String name) {
+        String lower = name.toLowerCase(Locale.US);
+        if (lower.contains("logo") || lower.contains("author") || lower.contains("portrait")
+                || lower.contains("photo") || lower.contains("editorial") || lower.contains("publisher")
+                || lower.contains("branding") || lower.contains("sponsor") || lower.contains("banner")) {
+            return false;
+        }
+        return lower.contains("cover") || lower.contains("titlepage")
+                || lower.contains("front") || lower.contains("thumbnail")
+                || lower.contains("book") || lower.contains("page");
+    }
+
+    private boolean isObviousNonCoverName(String name) {
+        String lower = name.toLowerCase(Locale.US);
+        return lower.contains("logo") || lower.contains("author") || lower.contains("portrait")
+                || lower.contains("photo") || lower.contains("editorial") || lower.contains("publisher")
+                || lower.contains("branding") || lower.contains("sponsor") || lower.contains("banner")
+                || lower.contains("staff") || lower.contains("team");
+    }
+
+    private Bitmap decodeImageFromZipEntry(java.util.zip.ZipFile zip, java.util.zip.ZipEntry entry) throws Exception {
+        byte[] blob = readZipEntryBytes(zip, entry);
+        if (blob == null || blob.length == 0) return null;
+        Bitmap bm = BitmapFactory.decodeByteArray(blob, 0, blob.length);
+        return bm;
+    }
+
+    private Bitmap extractCoverFromFb2(File file) throws Exception {
+        FileInputStream stream = null;
+        try {
+            stream = new FileInputStream(file);
+            XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
+            factory.setNamespaceAware(true);
+            XmlPullParser parser = factory.newPullParser();
+            parser.setInput(stream, "UTF-8");
+
+            String coverId = null;
+            boolean readingBinary = false;
+            String pendingMime = null;
+            StringBuilder pendingData = null;
+
+            int eventType = parser.getEventType();
+            while (eventType != XmlPullParser.END_DOCUMENT) {
+                String tagName = parser.getName();
+
+                if (eventType == XmlPullParser.START_TAG) {
+                    if ("image".equalsIgnoreCase(tagName)) {
+                        String href = parser.getAttributeValue(null, "href");
+                        if (TextUtils.isEmpty(href)) {
+                            href = parser.getAttributeValue("http://www.w3.org/1999/xlink", "href");
+                        }
+                        if (TextUtils.isEmpty(href)) {
+                            href = parser.getAttributeValue("http://www.w3.org/1999/xlink", "href");
+                        }
+                        if (!TextUtils.isEmpty(href)) {
+                            String normalized = normalizeFb2Reference(href);
+                            if (!TextUtils.isEmpty(normalized)) {
+                                coverId = normalized;
+                            }
+                        }
+                    } else if ("binary".equalsIgnoreCase(tagName)) {
+                        String id = parser.getAttributeValue(null, "id");
+                        String mime = parser.getAttributeValue(null, "content-type");
+                        if (!TextUtils.isEmpty(mime) && mime.toLowerCase(Locale.US).startsWith("image/")) {
+                            if (coverId != null && (coverId.equalsIgnoreCase(id) || coverId.equalsIgnoreCase(normalizeFb2Reference(id)))) {
+                                readingBinary = true;
+                                pendingMime = mime;
+                                pendingData = new StringBuilder();
+                            }
+                        }
+                    }
+                } else if (eventType == XmlPullParser.TEXT) {
+                    if (readingBinary && pendingData != null) {
+                        pendingData.append(parser.getText());
+                    }
+                } else if (eventType == XmlPullParser.END_TAG) {
+                    if ("binary".equalsIgnoreCase(tagName) && readingBinary && pendingData != null) {
+                        Bitmap bm = decodeBase64Bitmap(pendingData.toString());
+                        if (bm != null) return bm;
+                        readingBinary = false;
+                        pendingData = null;
+                        pendingMime = null;
+                    }
+                }
+
+                eventType = parser.next();
+            }
+
+            // Fallback scan for binary names that look like cover assets if no coverpage reference was found.
+            stream.close();
+            stream = new FileInputStream(file);
+            parser = factory.newPullParser();
+            parser.setInput(stream, "UTF-8");
+
+            eventType = parser.getEventType();
+            while (eventType != XmlPullParser.END_DOCUMENT) {
+                String tagName2 = parser.getName();
+                if (eventType == XmlPullParser.START_TAG && "binary".equalsIgnoreCase(tagName2)) {
+                    String id = parser.getAttributeValue(null, "id");
+                    String mime = parser.getAttributeValue(null, "content-type");
+                    if (!TextUtils.isEmpty(mime) && mime.toLowerCase(Locale.US).startsWith("image/")) {
+                        if (id != null && !isObviousNonCoverName(id) && (looksLikeCoverName(id) || !id.contains("."))) {
+                            StringBuilder data = new StringBuilder();
+                            int inner = parser.next();
+                            while (inner != XmlPullParser.END_DOCUMENT) {
+                                if (inner == XmlPullParser.TEXT) {
+                                    data.append(parser.getText());
+                                } else if (inner == XmlPullParser.END_TAG && "binary".equalsIgnoreCase(parser.getName())) {
+                                    Bitmap bm = decodeBase64Bitmap(data.toString());
+                                    if (bm != null) return bm;
+                                    break;
+                                }
+                                inner = parser.next();
+                            }
+                        }
+                    }
+                }
+                eventType = parser.next();
+            }
+            return null;
+        } finally {
+            if (stream != null) stream.close();
+        }
+    }
+
+    private String normalizeFb2Reference(String ref) {
+        if (TextUtils.isEmpty(ref)) return null;
+        String normalized = ref.trim();
+        if (normalized.startsWith("#")) {
+            normalized = normalized.substring(1);
+        }
+        int hashIndex = normalized.indexOf('#');
+        if (hashIndex >= 0) {
+            normalized = normalized.substring(hashIndex + 1);
+        }
+        return normalized;
+    }
+
+    private Bitmap decodeBase64Bitmap(String base64) {
+        if (TextUtils.isEmpty(base64)) return null;
+        try {
+            byte[] imageBytes = Base64.decode(base64.replaceAll("\\s+", ""), Base64.DEFAULT);
+            if (imageBytes == null || imageBytes.length == 0) return null;
+            return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+        } catch (Exception ignore) {
+            return null;
+        }
+    }
+
+    private String extractAttribute(String attrs, String attributeName) {
+        if (TextUtils.isEmpty(attrs)) return null;
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
+                attributeName + "=['\"]([^'\"]+)['\"]",
+                java.util.regex.Pattern.CASE_INSENSITIVE);
+        java.util.regex.Matcher matcher = pattern.matcher(attrs);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        return null;
+    }
+
+    private byte[] readZipEntryBytes(java.util.zip.ZipFile zip, java.util.zip.ZipEntry entry) throws Exception {
+        java.io.InputStream is = null;
+        try {
+            is = zip.getInputStream(entry);
+            java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = is.read(buffer)) != -1) {
+                bos.write(buffer, 0, read);
+            }
+            return bos.toByteArray();
+        } finally {
+            if (is != null) is.close();
+        }
+    }
+
+    private byte[] readFileBytes(File file) throws Exception {
+        java.io.InputStream is = null;
+        try {
+            is = new java.io.FileInputStream(file);
+            java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = is.read(buffer)) != -1) {
+                bos.write(buffer, 0, read);
+            }
+            return bos.toByteArray();
+        } finally {
+            if (is != null) is.close();
+        }
+    }
+
+    private Bitmap generatePlaceholderCover(String title) {
+        int width = 240;
+        int height = 320;
+        Bitmap bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bmp);
+
+        int[] palette = new int[] {
+                Color.parseColor("#3F51B5"),
+                Color.parseColor("#009688"),
+                Color.parseColor("#673AB7"),
+                Color.parseColor("#E91E63"),
+                Color.parseColor("#FF9800")
+        };
+        int color = palette[Math.abs((title == null ? 0 : title.hashCode())) % palette.length];
+
+        Paint bg = new Paint();
+        bg.setColor(color);
+        canvas.drawRect(0, 0, width, height, bg);
+
+        Paint overlay = new Paint();
+        overlay.setColor(0x66000000);
+        canvas.drawRect(0, 0, width, height, overlay);
+
+        Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        textPaint.setColor(Color.WHITE);
+        textPaint.setTextAlign(Paint.Align.CENTER);
+        textPaint.setTextSize(52f);
+        textPaint.setFakeBoldText(true);
+
+        String initials = "B";
+        if (!TextUtils.isEmpty(title)) {
+            String cleaned = title.trim();
+            String[] parts = cleaned.split("\\s+");
+            StringBuilder sb = new StringBuilder();
+            for (String part : parts) {
+                if (part.length() > 0) {
+                    sb.append(part.substring(0, 1).toUpperCase(Locale.US));
+                    if (sb.length() >= 2) break;
+                }
+            }
+            if (sb.length() > 0) initials = sb.toString();
+        }
+
+        canvas.drawText(initials.length() > 2 ? initials.substring(0, 2) : initials, width / 2f, height / 2f + 18f, textPaint);
+        return bmp;
     }
 
     // ──────────────────────────────────────────────────────────────────────────

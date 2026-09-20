@@ -113,7 +113,7 @@
             android:layout_marginBottom="8dp"
             android:background="@color/gray_border" />
 
-        <!-- Footer actions: delete icon, open-with center, favorite icon -->
+        <!-- Footer actions: delete icon, read/open-with buttons, favorite icon -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="48dp"
@@ -128,6 +128,18 @@
                 android:contentDescription="Delete"
                 android:src="@android:drawable/ic_menu_delete"
                 android:tint="@color/white" />
+
+            <Button
+                android:id="@+id/btn_read"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginLeft="4dp"
+                android:layout_marginRight="4dp"
+                android:text="Read"
+                android:textColor="@color/black"
+                android:textSize="14sp"
+                android:background="@color/gray_light" />
 
             <Button
                 android:id="@+id/btn_open_with"
