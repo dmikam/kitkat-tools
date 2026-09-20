@@ -35,6 +35,8 @@ import android.widget.RatingBar;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import android.view.Menu;
+import android.view.MenuItem;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -105,12 +107,14 @@ public class MainActivity extends AppCompatActivity {
     private AppsAdapter appsAdapter;
 
     private boolean isAppsTabVisible = false;
+    private android.content.SharedPreferences prefs;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         overridePendingTransition(0, 0);
         setContentView(R.layout.activity_main);
+        prefs = android.preference.PreferenceManager.getDefaultSharedPreferences(this);
         initViews();
         setupListeners();
 
@@ -340,9 +344,55 @@ public class MainActivity extends AppCompatActivity {
                     tvEmptyBooks.setVisibility(View.GONE);
                     lvBooks.setVisibility(View.VISIBLE);
                     booksAdapter.setData(books);
+                    // If auto-load is enabled, prefetch covers in background for books without cache
+                    boolean auto = prefs.getBoolean("pref_auto_load_covers", false);
+                    if (auto) prefetchCovers(books);
                 }
             }
         }.execute();
+    }
+
+    /** Background prefetch: attempt to extract covers and populate cache for books lacking one. */
+    private void prefetchCovers(final List<BookItem> books) {
+        new AsyncTask<Void, Void, Void>() {
+            @Override
+            protected Void doInBackground(Void... voids) {
+                // lower thread priority to minimize impact on UI
+                try { android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND); } catch (Exception ignore) {}
+                for (BookItem item : books) {
+                    if (isCancelled()) break;
+                    try {
+                        File cache = getCoverCacheFile(item);
+                        File marker = getNoCoverMarkerFile(item);
+                        if ((cache != null && cache.exists()) || (marker != null && marker.exists())) continue;
+                        if (TextUtils.isEmpty(item.getLocation())) {
+                            if (marker != null) marker.createNewFile();
+                            continue;
+                        }
+                        Bitmap bm = null;
+                        try {
+                            bm = loadEmbeddedCoverFromFile(new File(item.getLocation()));
+                        } catch (Exception ignore) {}
+                        if (isCancelled()) break;
+                        if (bm != null) {
+                            try {
+                                if (cache != null) {
+                                    File dir = cache.getParentFile(); if (dir!=null && !dir.exists()) dir.mkdirs();
+                                    java.io.FileOutputStream fos = new java.io.FileOutputStream(cache);
+                                    bm.compress(Bitmap.CompressFormat.PNG, 90, fos);
+                                    fos.close();
+                                }
+                            } catch (Exception ignore) {}
+                        } else {
+                            try { if (marker != null) marker.createNewFile(); } catch (Exception ignore) {}
+                        }
+                    } catch (Exception ignore) {}
+                    // throttle: short sleep between items to reduce IO contention
+                    try { Thread.sleep(250); } catch (InterruptedException ie) { break; }
+                }
+                return null;
+            }
+        }.executeOnExecutor(AsyncTask.SERIAL_EXECUTOR);
     }
 
     private void loadApps() {
@@ -718,6 +768,10 @@ public class MainActivity extends AppCompatActivity {
             @Override
             protected Bitmap doInBackground(Void... voids) {
                 try {
+                    File markerFile = getNoCoverMarkerFile(item);
+                    if (markerFile != null && markerFile.exists()) {
+                        return null;
+                    }
                     // 1) Try disk cache
                     File cache = getCoverCacheFile(item);
                     if (cache != null && cache.exists()) {
@@ -743,6 +797,8 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                 } catch (Exception ignore) {}
+                // mark as no cover to avoid repeated attempts
+                try { File marker = getNoCoverMarkerFile(item); if (marker!=null) marker.createNewFile(); } catch (Exception ignored) {}
                 return null; // keep placeholder
             }
 
@@ -768,6 +824,21 @@ public class MainActivity extends AppCompatActivity {
                 key = Integer.toHexString(loc == null ? 0 : loc.hashCode());
             }
             String safe = "cover_" + key + ".png";
+            File dir = getCacheDir();
+            return new File(dir, safe);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private File getNoCoverMarkerFile(BookItem item) {
+        try {
+            String key = item.getMd5();
+            if (TextUtils.isEmpty(key)) {
+                String loc = item.getLocation();
+                key = Integer.toHexString(loc == null ? 0 : loc.hashCode());
+            }
+            String safe = "no_cover_" + key + ".marker";
             File dir = getCacheDir();
             return new File(dir, safe);
         } catch (Exception e) {
@@ -905,10 +976,42 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private Bitmap decodeImageFromZipEntry(java.util.zip.ZipFile zip, java.util.zip.ZipEntry entry) throws Exception {
-        byte[] blob = readZipEntryBytes(zip, entry);
-        if (blob == null || blob.length == 0) return null;
-        Bitmap bm = BitmapFactory.decodeByteArray(blob, 0, blob.length);
-        return bm;
+        java.io.InputStream is = null;
+        try {
+            // First pass: read bounds
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inJustDecodeBounds = true;
+            is = zip.getInputStream(entry);
+            BitmapFactory.decodeStream(is, null, options);
+            try { is.close(); } catch (Exception ignore) {}
+
+            // Compute sample size to limit memory; target max dimension ~800px
+            int req = 800;
+            options.inSampleSize = calculateInSampleSize(options, req, req);
+            options.inJustDecodeBounds = false;
+            options.inPreferredConfig = Bitmap.Config.RGB_565;
+
+            // Second pass: decode with sample size
+            is = zip.getInputStream(entry);
+            Bitmap bm = BitmapFactory.decodeStream(is, null, options);
+            return bm;
+        } finally {
+            if (is != null) try { is.close(); } catch (Exception ignore) {}
+        }
+    }
+
+    private static int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
+        int height = options.outHeight;
+        int width = options.outWidth;
+        int inSampleSize = 1;
+        if (height > reqHeight || width > reqWidth) {
+            final int halfHeight = height / 2;
+            final int halfWidth = width / 2;
+            while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
+                inSampleSize *= 2;
+            }
+        }
+        return inSampleSize;
     }
 
     private Bitmap extractCoverFromFb2(File file) throws Exception {
@@ -1256,5 +1359,25 @@ public class MainActivity extends AppCompatActivity {
             showBooksTab();
         }
         // Do not finish() — launcher stays alive
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        try {
+            getMenuInflater().inflate(R.menu.main_menu, menu);
+        } catch (Exception ignore) {}
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        if (id == R.id.action_settings) {
+            try {
+                startActivity(new android.content.Intent(this, SettingsActivity.class));
+            } catch (Exception ignore) {}
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 }

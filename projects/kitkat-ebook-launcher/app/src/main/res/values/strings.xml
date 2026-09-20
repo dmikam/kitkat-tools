@@ -9,5 +9,6 @@
     <string name="unknown_title">Untitled</string>
     <string name="progress_label">Progress: %s</string>
     <string name="refresh">Refresh</string>
+    <string name="settings">Settings</string>
 </resources>
 

@@ -5,6 +5,14 @@ import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.preference.PreferenceManager;
+import android.widget.ImageView;
 import android.widget.BaseAdapter;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -21,9 +29,11 @@ public class BooksAdapter extends BaseAdapter {
     private final LayoutInflater inflater;
     private final List<BookItem> books = new ArrayList<>();
     private FavoriteToggleListener favoriteListener;
+    private final SharedPreferences prefs;
 
     public BooksAdapter(Context context) {
         this.inflater = LayoutInflater.from(context);
+        this.prefs = PreferenceManager.getDefaultSharedPreferences(context);
     }
 
     public void setFavoriteToggleListener(FavoriteToggleListener listener) {
@@ -61,6 +71,7 @@ public class BooksAdapter extends BaseAdapter {
         if (convertView == null) {
             convertView = inflater.inflate(R.layout.item_book, parent, false);
             holder = new ViewHolder();
+            holder.ivCover = convertView.findViewById(R.id.iv_list_cover);
             holder.tvTitle = convertView.findViewById(R.id.tv_book_title);
             holder.tvAuthor = convertView.findViewById(R.id.tv_book_author);
             holder.tvRating = convertView.findViewById(R.id.tv_book_rating);
@@ -124,15 +135,99 @@ public class BooksAdapter extends BaseAdapter {
             }
         });
 
+        // Covers in list: controlled by preference
+        boolean showCovers = prefs.getBoolean("pref_show_covers", true);
+        if (!showCovers) {
+            if (holder.ivCover != null) holder.ivCover.setVisibility(View.GONE);
+        } else {
+            if (holder.ivCover != null) {
+                // Try cache file
+                String key = item.getMd5();
+                if (key == null) {
+                    String loc = item.getLocation();
+                    key = Integer.toHexString(loc == null ? 0 : loc.hashCode());
+                }
+                android.content.Context ctx = inflater.getContext();
+                java.io.File cache = new java.io.File(ctx.getCacheDir(), "cover_" + key + ".png");
+                if (cache.exists()) {
+                    // Efficient decode to thumbnail
+                    Bitmap bm = decodeSampledBitmapFromFile(cache.getAbsolutePath(), 72, 96);
+                    if (bm != null) {
+                        holder.ivCover.setImageBitmap(bm);
+                        holder.ivCover.setVisibility(View.VISIBLE);
+                    } else {
+                        holder.ivCover.setVisibility(View.GONE);
+                    }
+                } else {
+                    // Show small placeholder
+                    Bitmap ph = createPlaceholderSmall(item.getTitle());
+                    holder.ivCover.setImageBitmap(ph);
+                    holder.ivCover.setVisibility(View.VISIBLE);
+                }
+            }
+        }
+
         return convertView;
     }
 
     private static class ViewHolder {
+        ImageView ivCover;
         TextView tvTitle;
         TextView tvAuthor;
         TextView tvRating;
         TextView tvProgress;
         ProgressBar pbProgress;
         TextView tvFavorite;
+    }
+
+    private static Bitmap decodeSampledBitmapFromFile(String path, int reqWidth, int reqHeight) {
+        try {
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inJustDecodeBounds = true;
+            BitmapFactory.decodeFile(path, options);
+
+            options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight);
+            options.inJustDecodeBounds = false;
+            options.inPreferredConfig = Bitmap.Config.RGB_565;
+            return BitmapFactory.decodeFile(path, options);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
+        int height = options.outHeight;
+        int width = options.outWidth;
+        int inSampleSize = 1;
+        if (height > reqHeight || width > reqWidth) {
+            final int halfHeight = height / 2;
+            final int halfWidth = width / 2;
+            while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
+                inSampleSize *= 2;
+            }
+        }
+        return inSampleSize;
+    }
+
+    private static Bitmap createPlaceholderSmall(String title) {
+        int width = 72;
+        int height = 96;
+        Bitmap bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bmp);
+        int[] palette = new int[] { Color.parseColor("#3F51B5"), Color.parseColor("#009688"), Color.parseColor("#673AB7") };
+        int color = palette[Math.abs((title == null ? 0 : title.hashCode())) % palette.length];
+        Paint bg = new Paint(); bg.setColor(color);
+        canvas.drawRect(0,0,width,height,bg);
+        Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        textPaint.setColor(Color.WHITE); textPaint.setTextAlign(Paint.Align.CENTER); textPaint.setTextSize(20f);
+        String initials = "B";
+        if (!TextUtils.isEmpty(title)) {
+            String[] parts = title.trim().split("\\s+");
+            StringBuilder sb = new StringBuilder();
+            for (String p : parts) { if (p.length()>0) { sb.append(p.substring(0,1).toUpperCase()); if (sb.length()>=2) break; } }
+            if (sb.length()>0) initials = sb.toString();
+        }
+        canvas.drawText(initials.length()>2?initials.substring(0,2):initials, width/2f, height/2f+6f, textPaint);
+        return bmp;
     }
 }

@@ -2,108 +2,119 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
+    android:orientation="horizontal"
     android:background="@color/white"
-    android:paddingLeft="16dp"
+    android:paddingLeft="12dp"
     android:paddingRight="8dp"
     android:paddingTop="8dp"
     android:paddingBottom="8dp">
 
-    <!-- Row 1: Title + Heart -->
+    <ImageView
+        android:id="@+id/iv_list_cover"
+        android:layout_width="72dp"
+        android:layout_height="96dp"
+        android:scaleType="centerCrop"
+        android:visibility="gone"
+        android:layout_marginRight="8dp" />
+
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:layout_weight="1"
+        android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/tv_book_title"
-            android:layout_width="0dp"
+        <!-- Row 1: Title + Heart -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:textColor="@color/black"
-            android:textSize="17sp"
-            android:textStyle="bold"
-            android:ellipsize="end"
-            android:maxLines="2" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-        <!-- Heart: clickable=true, focusable=false so ListView long-press still fires -->
-        <TextView
-            android:id="@+id/tv_favorite"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:gravity="center"
-            android:textSize="22sp"
-            android:textColor="@color/black"
-            android:clickable="true"
-            android:focusable="false"
-            android:text="&#9825;" />
+            <TextView
+                android:id="@+id/tv_book_title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="@color/black"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:ellipsize="end"
+                android:maxLines="2" />
+
+            <!-- Heart: clickable=true, focusable=false so ListView long-press still fires -->
+            <TextView
+                android:id="@+id/tv_favorite"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:gravity="center"
+                android:textSize="22sp"
+                android:textColor="@color/black"
+                android:clickable="true"
+                android:focusable="false"
+                android:text="&#9825;" />
+
+        </LinearLayout>
+
+        <!-- Row 2: Author + small rating -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tv_book_author"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="@color/gray_dark"
+                android:textSize="14sp"
+                android:ellipsize="end"
+                android:singleLine="true" />
+
+            <TextView
+                android:id="@+id/tv_book_rating"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="8dp"
+                android:textColor="@color/gray_dark"
+                android:textSize="12sp"
+                android:gravity="center_vertical" />
+
+        </LinearLayout>
+
+        <!-- Row 3: Progress bar + progress text -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ProgressBar
+                android:id="@+id/pb_progress"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="0dp"
+                android:layout_height="8dp"
+                android:layout_weight="1"
+                android:progressDrawable="@drawable/progress_bar_drawable"
+                android:max="100"
+                android:progress="0" />
+
+            <TextView
+                android:id="@+id/tv_book_progress"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="8dp"
+                android:textColor="@color/black"
+                android:textSize="13sp"
+                android:minWidth="52dp"
+                android:gravity="end" />
+
+        </LinearLayout>
 
     </LinearLayout>
 
-    <!-- Row 2: Author + small rating -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:orientation="horizontal">
-
-        <TextView
-            android:id="@+id/tv_book_author"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:textColor="@color/gray_dark"
-            android:textSize="14sp"
-            android:ellipsize="end"
-            android:singleLine="true" />
-
-        <TextView
-            android:id="@+id/tv_book_rating"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="8dp"
-            android:textColor="@color/gray_dark"
-            android:textSize="12sp"
-            android:gravity="center_vertical" />
-
-    </LinearLayout>
-
-    <!-- Row 3: Progress bar + progress text -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="5dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
-
-        <ProgressBar
-            android:id="@+id/pb_progress"
-            style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="0dp"
-            android:layout_height="8dp"
-            android:layout_weight="1"
-            android:progressDrawable="@drawable/progress_bar_drawable"
-            android:max="100"
-            android:progress="0" />
-
-        <TextView
-            android:id="@+id/tv_book_progress"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="8dp"
-            android:textColor="@color/black"
-            android:textSize="13sp"
-            android:minWidth="52dp"
-            android:gravity="end" />
-
-    </LinearLayout>
-
-    <!-- Divider -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginTop="8dp"
-        android:background="@color/gray_border" />
+    <!-- Divider below is handled by list dividers -->
 
 </LinearLayout>
